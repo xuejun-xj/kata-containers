@@ -118,9 +118,9 @@ options:
 	stratovirt
 	rootfs-image
 	rootfs-image-confidential
+	rootfs-image-mariner
 	rootfs-initrd
 	rootfs-initrd-confidential
-	rootfs-initrd-mariner
 	runk
 	shim-v2
 	trace-forwarder
@@ -342,6 +342,11 @@ install_image_confidential() {
 	install_image "confidential"
 }
 
+#Install cbl-mariner guest image
+install_image_mariner() {
+	install_image "mariner"
+}
+
 #Install guest initrd
 install_initrd() {
 	local variant="${1:-}"
@@ -410,11 +415,6 @@ install_initrd_confidential() {
 	export MEASURED_ROOTFS=yes
 	export PULL_TYPE=default
 	install_initrd "confidential"
-}
-
-#Install Mariner guest initrd
-install_initrd_mariner() {
-	install_initrd "mariner"
 }
 
 #Instal NVIDIA GPU image
@@ -1086,11 +1086,11 @@ handle_build() {
 
 	rootfs-image-confidential) install_image_confidential ;;
 
+	rootfs-image-mariner) install_image_mariner ;;
+
 	rootfs-initrd) install_initrd ;;
 
 	rootfs-initrd-confidential) install_initrd_confidential ;;
-
-	rootfs-initrd-mariner) install_initrd_mariner ;;
 
 	rootfs-nvidia-gpu-image) install_image_nvidia_gpu ;;
 

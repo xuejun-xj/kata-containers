@@ -35,8 +35,8 @@ BASE_TARBALLS = serial-targets \
 	virtiofsd-tarball
 BASE_SERIAL_TARBALLS = rootfs-image-tarball \
 	rootfs-image-confidential-tarball \
+	rootfs-image-mariner-tarball \
 	rootfs-initrd-confidential-tarball \
-	rootfs-initrd-mariner-tarball \
 	rootfs-initrd-tarball \
 	cloud-hypervisor-tarball \
 	cloud-hypervisor-glibc-tarball
@@ -149,7 +149,7 @@ rootfs-image-tarball: agent-tarball
 rootfs-image-confidential-tarball: agent-tarball pause-image-tarball coco-guest-components-tarball kernel-confidential-tarball
 	${MAKE} $@-build
 
-rootfs-initrd-mariner-tarball: agent-tarball
+rootfs-image-mariner-tarball: agent-tarball
 	${MAKE} $@-build
 
 rootfs-initrd-confidential-tarball: agent-tarball pause-image-tarball coco-guest-components-tarball kernel-confidential-tarball
