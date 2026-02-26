@@ -189,7 +189,7 @@ async fn install(config: &config::Config, runtime: &str) -> Result<()> {
 
     runtime::containerd::setup_containerd_config_files(runtime, config).await?;
 
-    artifacts::install_artifacts(config).await?;
+    artifacts::install_artifacts(config, runtime).await?;
 
     runtime::configure_cri_runtime(config, runtime).await?;
 

@@ -201,6 +201,7 @@ type runtime struct {
 	DanConf                   string   `toml:"dan_conf"`
 	ForceGuestPull            bool     `toml:"experimental_force_guest_pull"`
 	PodResourceAPISock        string   `toml:"pod_resource_api_sock"`
+	KubeletRootDir            string   `toml:"kubelet_root_dir"`
 }
 
 type agent struct {
@@ -1642,6 +1643,7 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
 
 	config.ForceGuestPull = tomlConf.Runtime.ForceGuestPull
 	config.PodResourceAPISock = tomlConf.Runtime.PodResourceAPISock
+	config.KubeletRootDir = tomlConf.Runtime.KubeletRootDir
 
 	return resolved, config, nil
 }

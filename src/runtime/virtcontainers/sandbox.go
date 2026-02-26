@@ -189,6 +189,11 @@ type SandboxConfig struct {
 
 	// ForceGuestPull enforces guest pull independent of snapshotter annotations.
 	ForceGuestPull bool
+
+	// KubeletRootDir is the kubelet root directory (e.g. /var/lib/kubelet or
+	// /var/lib/k0s/kubelet for k0s). If empty, the runtime uses the default
+	// /var/lib/kubelet for matching ConfigMap/Secret volume paths.
+	KubeletRootDir string
 }
 
 // valid checks that the sandbox configuration is valid.
