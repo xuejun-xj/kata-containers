@@ -3922,6 +3922,7 @@ dependencies = [
  "agent",
  "anyhow",
  "common",
+ "containerd-shim-protos",
  "hyper",
  "hypervisor",
  "kata-sys-util",
