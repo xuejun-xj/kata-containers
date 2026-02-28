@@ -193,6 +193,10 @@ type RuntimeConfig struct {
 	//	ColdPlugVFIO != NoPort AND PodResourceAPISock != "" => kubelet
 	//		based cold plug.
 	PodResourceAPISock string
+
+	// KubeletRootDir is the kubelet root directory used to match ConfigMap/Secret
+	// volume paths (e.g. /var/lib/k0s/kubelet for k0s). If empty, default is used.
+	KubeletRootDir string
 }
 
 // AddKernelParam allows the addition of new kernel parameters to an existing
@@ -1216,6 +1220,8 @@ func SandboxConfig(ocispec specs.Spec, runtime RuntimeConfig, bundlePath, cid st
 		CreateContainerTimeout: runtime.CreateContainerTimeout,
 
 		ForceGuestPull: runtime.ForceGuestPull,
+
+		KubeletRootDir: runtime.KubeletRootDir,
 	}
 
 	if err := addAnnotations(ocispec, &sandboxConfig, runtime); err != nil {
