@@ -11,6 +11,6 @@ OS_VERSION=${OS_VERSION:-3.0}
 LIBC="gnu"
 PACKAGES="kata-packages-uvm"
 # shellcheck disable=SC2154
-[[ "${AGENT_INIT}" = no ]] && PACKAGES+=" systemd"
+if [[ "${AGENT_INIT}" = "no" ]]; then PACKAGES+=" systemd"; fi
 # shellcheck disable=SC2154
-[[ "${SECCOMP}" = yes ]] && PACKAGES+=" libseccomp"
+if [[ "${SECCOMP}" = "yes" ]]; then PACKAGES+=" libseccomp"; fi
