@@ -33,22 +33,12 @@ ARCH_DIR = arch
 ARCH_FILE_SUFFIX = -options.mk
 ARCH_FILE = $(ARCH_DIR)/$(ARCH)$(ARCH_FILE_SUFFIX)
 
-UNSUPPORTED_ARCHS := s390x powerpc64le riscv64gc
-
-ifeq ($(filter $(ARCH), $(UNSUPPORTED_ARCHS)),$(ARCH))
-default: runtime show-header
-test:
-	@echo "$(ARCH) is not currently supported"
-	exit 0
-install: install-runtime install-configs
-else
 ##TARGET default: build code
 default: runtime show-header
 ##TARGET test: run cargo tests for runtime-rs and all its sub-crates.
 test: static-checks-build
 	@cargo test $(PACKAGE_FLAGS) --target $(TRIPLE) $(EXTRA_RUSTFEATURES) -- --nocapture  --skip bindgen
 install: install-runtime install-configs
-endif
 
 ifeq (,$(realpath $(ARCH_FILE)))
     $(error "ERROR: invalid architecture: '$(ARCH)'")
@@ -752,14 +742,8 @@ clean-generated-files:
 vendor:
 	@cargo vendor
 
-ifeq ($(ARCH),x86_64)
 ##TARGET check: run test
 check: $(GENERATED_FILES) standard_rust_check
-else
-check:
-	@echo "$(ARCH) is not currently supported"
-	exit 0
-endif
 
 ##TARGET run: build and run agent
 run:
