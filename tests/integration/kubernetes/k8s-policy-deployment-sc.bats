@@ -76,7 +76,7 @@ test_deployment_policy_error() {
     kubectl apply -f "${yaml}"
 
     # Wait for the deployment pod to fail
-    wait_for_blocked_request "CreateContainerRequest" "${deployment_name}"
+    wait_for_blocked_deployment_request "CreateContainerRequest" "policyredis"
 }
 
 @test "Policy failure: unexpected GID = 0 for layered securityContext deployment" {
