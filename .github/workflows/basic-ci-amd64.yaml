@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         containerd_version: ['active']
-        vmm: ['dragonball', 'cloud-hypervisor', 'qemu-runtime-rs']
+        vmm: ['dragonball', 'clh-runtime-rs', 'qemu-runtime-rs']
     concurrency:
       group: ${{ github.workflow }}-${{ github.job }}-${{ github.event.pull_request.number || github.ref }}-sandboxapi-amd64-${{ toJSON(matrix) }}
       cancel-in-progress: true
@@ -95,7 +95,7 @@ jobs:
       fail-fast: false
       matrix:
         containerd_version: ['lts', 'active']
-        vmm: ['clh', 'cloud-hypervisor', 'dragonball', 'qemu', 'qemu-runtime-rs']
+        vmm: ['clh', 'clh-runtime-rs', 'dragonball', 'qemu', 'qemu-runtime-rs']
     concurrency:
       group: ${{ github.workflow }}-${{ github.job }}-${{ github.event.pull_request.number || github.ref }}-run-containerd-stability-amd64-${{ toJSON(matrix) }}
       cancel-in-progress: true
@@ -250,7 +250,7 @@ jobs:
           - clh
           - dragonball
           - qemu
-          - cloud-hypervisor
+          - clh-runtime-rs
           - qemu-runtime-rs
     concurrency:
       group: ${{ github.workflow }}-${{ github.job }}-${{ github.event.pull_request.number || github.ref }}-nerdctl-amd64-${{ toJSON(matrix) }}
