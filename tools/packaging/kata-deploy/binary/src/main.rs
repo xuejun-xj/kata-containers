@@ -5,6 +5,7 @@
 
 mod artifacts;
 mod config;
+mod health;
 mod k8s;
 mod runtime;
 mod utils;
@@ -78,6 +79,11 @@ async fn main() -> Result<()> {
                 }
             };
 
+            let health_state = health::HealthState::new();
+            let health_port = health::health_port_from_env();
+            let health_listener = health::bind_health(health_port).await?;
+            tokio::spawn(health::serve_health(health_listener, health_state.clone()));
+
             // Race install against SIGTERM so cleanup always runs, even if
             // SIGTERM arrives during install (e.g. helm uninstall while the
             // container is restarting after a failed install attempt).
@@ -93,6 +99,7 @@ async fn main() -> Result<()> {
             };
 
             install_result?;
+            health_state.set(health::State::Ready);
 
             // DEPLOYMENT MODEL: Install runs as DaemonSet. Stay alive to maintain
             // the kata-runtime label and artifacts. On SIGTERM (pod termination),
@@ -148,8 +155,9 @@ async fn install(config: &config::Config, runtime: &str) -> Result<()> {
     ];
 
     if !SUPPORTED_RUNTIMES.contains(&runtime) {
-        error!("Runtime {runtime} not supported, skipping installation");
-        return Ok(());
+        return Err(anyhow::anyhow!(
+            "Runtime {runtime} is not supported for Kata Containers installation"
+        ));
     }
 
     if runtime != "crio" {

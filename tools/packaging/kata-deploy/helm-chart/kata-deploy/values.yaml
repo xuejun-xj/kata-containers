@@ -54,6 +54,37 @@ updateStrategy:
 
 debug: false
 
+# Health probes for the kata-deploy DaemonSet.
+# The binary runs an HTTP health server exposing /healthz (liveness) and /readyz (readiness).
+# /healthz returns 200 as soon as the server starts (process is alive).
+# /readyz returns 200 only after install completes; 503 while installing.
+#
+# The startup probe uses /readyz so it only passes once install completes. While
+# the startup probe is active the liveness probe is suppressed, giving install up
+# to failureThreshold * periodSeconds (default 10 min) before the kubelet kills
+# the container. Without a startup probe the liveness probe would fire immediately.
+#
+# The readiness probe makes rolling updates safer: the DaemonSet controller waits for
+# a pod to become ready before proceeding to the next node (respecting maxUnavailable).
+health:
+  port: 8090
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 1
+    periodSeconds: 10
+    failureThreshold: 60
+    timeoutSeconds: 3
+  livenessProbe:
+    enabled: true
+    periodSeconds: 30
+    failureThreshold: 3
+    timeoutSeconds: 3
+  readinessProbe:
+    enabled: true
+    periodSeconds: 10
+    failureThreshold: 3
+    timeoutSeconds: 3
+
 snapshotter:
   setup: ["nydus"]  # ["nydus", "erofs"] or []
 

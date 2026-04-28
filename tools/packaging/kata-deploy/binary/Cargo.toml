@@ -28,6 +28,8 @@ tokio = { workspace = true, features = [
     "macros",
     "signal",
     "time",
+    "net",
+    "io-util",
 ] }
 toml_edit = "0.22"
 walkdir = "2"
