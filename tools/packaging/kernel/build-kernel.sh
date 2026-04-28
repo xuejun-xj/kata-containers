@@ -44,8 +44,6 @@ build_type=""
 force_setup_generate_config="false"
 #GPU kernel support
 gpu_vendor=""
-#DPU kernel support
-dpu_vendor=""
 #Confidential guest type
 conf_guest=""
 #
@@ -101,7 +99,6 @@ Options:
 	-a <arch>   	: Arch target to build the kernel, such as aarch64/ppc64le/riscv64/s390x/x86_64.
 	-b <type>    	: Enable optional config type.
 	-c <path>   	: Path to config file to build the kernel.
-	-D <vendor> 	: DPU/SmartNIC vendor, only nvidia.
 	-d          	: Enable bash debug.
 	-e          	: Enable experimental kernel.
 	-E          	: Enable arch-specific experimental kernel, arch info offered by "-a".
@@ -239,7 +236,6 @@ get_kernel_frag_path() {
 	local arch_path="$1"
 	local common_path="${arch_path}/../common"
 	local gpu_path="${arch_path}/../gpu"
-	local dpu_path="${arch_path}/../dpu"
 
 	local kernel_path="$2"
 	local arch="$3"
@@ -298,12 +294,6 @@ get_kernel_frag_path() {
 		unset CONF_GUEST_SUFFIX
 
 		all_configs="${all_configs} ${gpu_configs}"
-	fi
-
-	if [[ "${dpu_vendor}" != "" ]]; then
-		info "Add kernel config for DPU/SmartNIC due to '-n ${dpu_vendor}'"
-		local dpu_configs="${dpu_path}/${dpu_vendor}.conf"
-		all_configs="${all_configs} ${dpu_configs}"
 	fi
 
 	if [[ "${measured_rootfs}" == "true" ]]; then
@@ -649,7 +639,7 @@ install_kata() {
 }
 
 main() {
-	while getopts "a:b:c:dD:eEfg:hH:k:mp:r:st:u:v:x" opt; do
+	while getopts "a:b:c:deEfg:hH:k:mp:r:st:u:v:x" opt; do
 		case "${opt}" in
 			a)
 				arch_target="${OPTARG}"
@@ -663,10 +653,6 @@ main() {
 			d)
 				PS4=' Line ${LINENO}: '
 				set -x
-				;;
-			D)
-				dpu_vendor="${OPTARG}"
-				[[ "${dpu_vendor}" == "${VENDOR_NVIDIA}" ]] || die "DPU vendor only support nvidia"
 				;;
 			e)
 				build_type="experimental"
