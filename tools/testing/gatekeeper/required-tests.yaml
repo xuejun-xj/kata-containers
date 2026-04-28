@@ -144,7 +144,7 @@ mapping:
       - Static checks / build-checks / check (make check, genpolicy, src/tools/genpolicy, rust, protobuf-compiler, ubuntu-22.04)
       - Static checks / build-checks / check (make check, kata-ctl, src/tools/kata-ctl, rust, protobuf-compiler, ubuntu-22.04)
       - Static checks / build-checks / check (make check, libs, src/libs, rust, protobuf-compiler, ubuntu-22.04)
-      - Static checks / build-checks / check (make check, runtime-rs, src/runtime-rs, rust, ubuntu-22.04)
+      - Static checks / build-checks / check (make check, runtime-rs, src/runtime-rs, rust, protobuf-compiler, ubuntu-22.04)
       - Static checks / build-checks / check (make check, runtime, src/runtime, golang, XDG_RUNTIME_DIR, ubuntu-22.04)
       - Static checks / build-checks / check (make check, trace-forwarder, src/tools/trace-forwarder, rust, ubuntu-22.04)
       - Static checks / build-checks / check (make test, agent-ctl, src/tools/agent-ctl, rust, protobuf-compiler, clang, ubuntu-22.04)
@@ -153,7 +153,7 @@ mapping:
       - Static checks / build-checks / check (make test, genpolicy, src/tools/genpolicy, rust, protobuf-compiler, ubuntu-22.04)
       - Static checks / build-checks / check (make test, kata-ctl, src/tools/kata-ctl, rust, protobuf-compiler, ubuntu-22.04)
       # - Static checks / build-checks / check (make test, libs, src/libs, rust, protobuf-compiler)
-      - Static checks / build-checks / check (make test, runtime-rs, src/runtime-rs, rust, ubuntu-22.04)
+      - Static checks / build-checks / check (make test, runtime-rs, src/runtime-rs, rust, protobuf-compiler, ubuntu-22.04)
       - Static checks / build-checks / check (make test, runtime, src/runtime, golang, XDG_RUNTIME_DIR, ubuntu-22.04)
       - Static checks / build-checks / check (make test, trace-forwarder, src/tools/trace-forwarder, rust, ubuntu-22.04)
       - Static checks / build-checks / check (make vendor, agent-ctl, src/tools/agent-ctl, rust, protobuf-compiler, clang, ubuntu-22.04)
@@ -161,7 +161,7 @@ mapping:
       - Static checks / build-checks / check (make vendor, dragonball, src/dragonball, rust, ubuntu-22.04)
       - Static checks / build-checks / check (make vendor, genpolicy, src/tools/genpolicy, rust, protobuf-compiler, ubuntu-22.04)
       - Static checks / build-checks / check (make vendor, kata-ctl, src/tools/kata-ctl, rust, protobuf-compiler, ubuntu-22.04)
-      - Static checks / build-checks / check (make vendor, runtime-rs, src/runtime-rs, rust, ubuntu-22.04)
+      - Static checks / build-checks / check (make vendor, runtime-rs, src/runtime-rs, rust, protobuf-compiler, ubuntu-22.04)
       - Static checks / build-checks / check (make vendor, runtime, src/runtime, golang, XDG_RUNTIME_DIR, ubuntu-22.04)
       - Static checks / build-checks / check (make vendor, trace-forwarder, src/tools/trace-forwarder, rust, ubuntu-22.04)
       - Static checks / build-checks / check (sudo -E PATH="$PATH" make test, agent-ctl, src/tools/agent-ctl, rust, protobuf-compiler, c...
@@ -170,7 +170,7 @@ mapping:
       - Static checks / build-checks / check (sudo -E PATH="$PATH" make test, genpolicy, src/tools/genpolicy, rust, protobuf-compiler, u...
       - Static checks / build-checks / check (sudo -E PATH="$PATH" make test, kata-ctl, src/tools/kata-ctl, rust, protobuf-compiler, ubu...
       - Static checks / build-checks / check (sudo -E PATH="$PATH" make test, libs, src/libs, rust, protobuf-compiler, ubuntu-22.04)
-      - Static checks / build-checks / check (sudo -E PATH="$PATH" make test, runtime-rs, src/runtime-rs, rust, ubuntu-22.04)
+      - Static checks / build-checks / check (sudo -E PATH="$PATH" make test, runtime-rs, src/runtime-rs, rust, protobuf-compiler, ubunt...
       - Static checks / build-checks / check (sudo -E PATH="$PATH" make test, runtime, src/runtime, golang, XDG_RUNTIME_DIR, ubuntu-22.04)
       - Static checks / build-checks / check (sudo -E PATH="$PATH" make test, trace-forwarder, src/tools/trace-forwarder, rust, ubuntu-2...
       - Static checks / build-checks-depending-on-kvm (runtime-rs)
@@ -182,7 +182,7 @@ mapping:
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make check, dragonball, src/dragonball, rust, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make check, genpolicy, src/tools/genpolicy, rust, protobuf-compiler, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make check, kata-ctl, src/tools/kata-ctl, rust, protobuf-compiler, ubuntu-24.04-s390x)
-      - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make check, runtime-rs, src/runtime-rs, rust, ubuntu-24.04-s390x)
+      - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make check, runtime-rs, src/runtime-rs, rust, protobuf-compiler, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make check, runtime, src/runtime, golang, XDG_RUNTIME_DIR, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make check, trace-forwarder, src/tools/trace-forwarder, rust, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make check, agent-ctl, src/tools/agent-ctl, rust, protobuf-compiler, clang, ubuntu-24.04-s...
@@ -190,7 +190,7 @@ mapping:
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make test, dragonball, src/dragonball, rust, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make test, genpolicy, src/tools/genpolicy, rust, protobuf-compiler, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make test, kata-ctl, src/tools/kata-ctl, rust, protobuf-compiler, ubuntu-24.04-s390x)
-      - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make test, runtime-rs, src/runtime-rs, rust, ubuntu-24.04-s390x)
+      - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make test, runtime-rs, src/runtime-rs, rust, protobuf-compiler, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make test, runtime, src/runtime, golang, XDG_RUNTIME_DIR, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make test, trace-forwarder, src/tools/trace-forwarder, rust, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make vendor, agent-ctl, src/tools/agent-ctl, rust, protobuf-compiler, clang, ubuntu-24.04-...
@@ -198,14 +198,14 @@ mapping:
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make vendor, dragonball, src/dragonball, rust, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make vendor, genpolicy, src/tools/genpolicy, rust, protobuf-compiler, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make vendor, kata-ctl, src/tools/kata-ctl, rust, protobuf-compiler, ubuntu-24.04-s390x)
-      - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make vendor, runtime-rs, src/runtime-rs, rust, ubuntu-24.04-s390x)
+      - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make vendor, runtime-rs, src/runtime-rs, rust, protobuf-compiler, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make vendor, runtime, src/runtime, golang, XDG_RUNTIME_DIR, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (make vendor, trace-forwarder, src/tools/trace-forwarder, rust, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (sudo -E PATH="$PATH" make test, agent-ctl, src/tools/agent-ctl, rust, protobuf-compiler, c...
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (sudo -E PATH="$PATH" make test, dragonball, src/dragonball, rust, ubuntu-24.04-s390x)
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (sudo -E PATH="$PATH" make test, genpolicy, src/tools/genpolicy, rust, protobuf-compiler, u...
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (sudo -E PATH="$PATH" make test, kata-ctl, src/tools/kata-ctl, rust, protobuf-compiler, ubu...
-      - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (sudo -E PATH="$PATH" make test, runtime-rs, src/runtime-rs, rust, ubuntu-24.04-s390x)
+      - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (sudo -E PATH="$PATH" make test, runtime-rs, src/runtime-rs, rust, protobuf-compiler, ubunt...
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (sudo -E PATH="$PATH" make test, runtime, src/runtime, golang, XDG_RUNTIME_DIR, ubuntu-24.0...
       - Static checks self-hosted / build-checks (ubuntu-24.04-s390x) / check (sudo -E PATH="$PATH" make test, trace-forwarder, src/tools/trace-forwarder, rust, ubuntu-2...
     required-labels:

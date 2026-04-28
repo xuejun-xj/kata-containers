@@ -34,7 +34,6 @@ crossbeam-channel = "0.5.6"
 qapi = { version = "0.15", features = ["qmp", "async-tokio-all"] }
 qapi-spec = "0.3.2"
 qapi-qmp = "0.15.0"
-hyperlocal = { workspace = true }
 hyper = { workspace = true, features = ["client"] }
 
 # Local dependencies
@@ -46,7 +45,25 @@ persist = { workspace = true }
 ch-config = { workspace = true, optional = true }
 tests_utils = { workspace = true }
 
-# Local dependencies: Dragonball
+# Dependencies that only exist to support hypervisors which upstream only
+# build on x86_64 and aarch64 (dragonball, firecracker). Keeping them in a
+# target-specific table means:
+#   * the `dragonball` cargo feature is a safe no-op on s390x/ppc64le/
+#     riscv64gc (so `cargo clippy --all-features` in CI doesn't break),
+#   * the dep graph on those targets is completely free of dragonball
+#     and firecracker artifacts, matching what the Makefile already
+#     installs (`FCCMD` is only defined for x86_64/aarch64), and
+#   * any future `use dbs_utils::...` or `use hyperlocal::...` in code
+#     that isn't already arch-gated will fail to build on those targets,
+#     forcing the new code to grow a proper `cfg(target_arch = ...)`
+#     gate at review time instead of silently shipping dead code.
+[target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
+# `dbs-utils` is only used by the dragonball and firecracker drivers
+# (both x86_64+aarch64 only). It compiles on every arch, but we have no
+# use for it elsewhere, so don't pull it in.
+dbs-utils = { workspace = true }
+# `hyperlocal` is only used by the firecracker driver (UDS HTTP client).
+hyperlocal = { workspace = true }
 dragonball = { workspace = true, features = [
     "atomic-guest-memory",
     "virtio-vsock",
@@ -61,7 +78,6 @@ dragonball = { workspace = true, features = [
     "vhost-user-net",
     "host-device",
 ], optional = true }
-dbs-utils = { workspace = true }
 
 [features]
 default = ["cloud-hypervisor"]
