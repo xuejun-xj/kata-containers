@@ -38,26 +38,83 @@ const CONTAINERD_CRI_IMAGES_PLUGIN_ID: &str = "\"io.containerd.cri.v1.images\"";
 /// Plugin table for CRI containerd in v2 (disable_snapshot_annotations lives here).
 const CONTAINERD_CRI_CONTAINERD_TABLE_V2: &str = "\"io.containerd.grpc.v1.cri\".containerd";
 
-/// Reads config and returns the CRI plugin ID used for *runtime* config (runtimes, snapshotter-per-runtime).
-pub(crate) fn get_containerd_pluginid(config_file: &str) -> Result<&'static str> {
-    let content = fs::read_to_string(config_file)
-        .with_context(|| format!("Failed to read containerd config file: {}", config_file))?;
+fn is_k3s_or_rke2(runtime: &str) -> bool {
+    matches!(runtime, "k3s" | "k3s-agent" | "rke2-agent" | "rke2-server")
+}
 
-    if content.contains("version = 3") {
-        Ok(CONTAINERD_V3_RUNTIME_PLUGIN_ID)
-    } else if content.contains("version = 2") {
-        Ok(CONTAINERD_V2_CRI_PLUGIN_ID)
-    } else {
-        Ok(CONTAINERD_LEGACY_CRI_PLUGIN_ID)
+fn schema_version_from_k3s_rke2_rendered_config() -> Option<u32> {
+    fs::read_to_string(crate::config::k3s_rke2_rendered_config_path())
+        .ok()
+        .and_then(|c| utils::major_version_from_config_toml(&c))
+}
+
+/// If `primary_schema` is unset, try the rendered K3s/RKE2 `config.toml`.
+/// In strict `get_containerd_pluginid` parsing, this only applies when the primary config is
+/// readable but has no root `version`; missing-file fallback only happens in lenient readers.
+fn schema_version_with_k3s_rke2_fallback(
+    primary_schema: Option<u32>,
+    runtime: &str,
+) -> Option<u32> {
+    primary_schema.or_else(|| {
+        if is_k3s_or_rke2(runtime) {
+            schema_version_from_k3s_rke2_rendered_config()
+        } else {
+            None
+        }
+    })
+}
+
+/// Root config schema `version = N` using lenient reads.
+///
+/// Reads `primary` via `fs::read_to_string`; on failure (missing path, permissions, etc.)
+/// the parsed schema is treated as unset. If that result has no root `version`, or the read
+/// failed, falls back to the rendered K3s/RKE2 `/etc/containerd/config.toml` when `runtime`
+/// is k3s/rke2 (covers templates without `version`, transient mounts, and similar).
+fn schema_version_relaxed(primary: &str, runtime: &str) -> Option<u32> {
+    let primary_v = fs::read_to_string(primary)
+        .ok()
+        .and_then(|c| utils::major_version_from_config_toml(&c));
+    schema_version_with_k3s_rke2_fallback(primary_v, runtime)
+}
+
+fn containerd_config_schema_version(paths: &ContainerdPaths, runtime: &str) -> Option<u32> {
+    schema_version_relaxed(&paths.config_file, runtime)
+}
+
+/// TOML path for containerd log level when DEBUG=true. Config schema v4+ uses
+/// `plugins."io.containerd.server.v1.debug"` instead of deprecated top-level `[debug]`.
+fn containerd_debug_level_toml_path(config_schema_version: Option<u32>) -> &'static str {
+    match config_schema_version {
+        Some(v) if v >= 4 => concat!(".plugins.", "\"io.containerd.server.v1.debug\"", ".level"),
+        _ => ".debug.level",
     }
 }
 
-/// True when the containerd config is v3 (version = 3), i.e. we use the split CRI plugins.
+/// Reads config and returns the CRI plugin ID used for *runtime* config (runtimes, snapshotter-per-runtime).
+/// `runtime` selects K3s/RKE2 fallbacks when `config_file` is a template without `version`.
+pub(crate) fn get_containerd_pluginid(config_file: &str, runtime: &str) -> Result<&'static str> {
+    let content = fs::read_to_string(config_file)
+        .with_context(|| format!("Failed to read containerd config file: {}", config_file))?;
+
+    let v = schema_version_with_k3s_rke2_fallback(
+        utils::major_version_from_config_toml(&content),
+        runtime,
+    );
+
+    match v {
+        Some(ver) if ver >= 3 => Ok(CONTAINERD_V3_RUNTIME_PLUGIN_ID),
+        Some(2) => Ok(CONTAINERD_V2_CRI_PLUGIN_ID),
+        _ => Ok(CONTAINERD_LEGACY_CRI_PLUGIN_ID),
+    }
+}
+
+/// True when the containerd config uses split CRI plugins (`io.containerd.cri.v1.*`),
+/// i.e. config schema version >= 3 (including containerd's newer defaults such as version 4).
 fn is_containerd_v3_config(pluginid: &str) -> bool {
     pluginid == CONTAINERD_V3_RUNTIME_PLUGIN_ID
 }
 
-/// Maps the runtime plugin ID (from get_containerd_pluginid) to the plugin table where
+/// Maps the runtime plugin ID (from `get_containerd_pluginid` / K3s `paths.plugin_id`) to the table where
 /// disable_snapshot_annotations lives. In v3 that's the *images* plugin; in v2 the CRI .containerd subtable.
 pub(crate) fn pluginid_for_snapshotter_annotations(
     runtime_plugin_id: &str,
@@ -69,7 +126,7 @@ pub(crate) fn pluginid_for_snapshotter_annotations(
         Ok(CONTAINERD_CRI_CONTAINERD_TABLE_V2)
     } else {
         anyhow::bail!(
-            "Containerd config {} has no \"version = 2\" or \"version = 3\"; cannot determine CRI plugin for snapshotter config",
+            "Containerd config {} has no supported config schema (need version = 2 or version >= 3); cannot determine CRI plugin for snapshotter config",
             config_file
         )
     }
@@ -179,7 +236,7 @@ pub async fn configure_containerd_runtime(
     let configuration_file = get_containerd_output_path(&paths);
     let pluginid = match paths.plugin_id.as_deref() {
         Some(plugin_id) => plugin_id,
-        None => get_containerd_pluginid(&paths.config_file)?,
+        None => get_containerd_pluginid(&paths.config_file, runtime)?,
     };
 
     log::info!(
@@ -236,7 +293,9 @@ pub async fn configure_containerd_runtime(
     write_containerd_runtime_config(&configuration_file, pluginid, &params)?;
 
     if config.debug {
-        toml_utils::set_toml_value(&configuration_file, ".debug.level", "\"debug\"")?;
+        let schema = containerd_config_schema_version(&paths, runtime);
+        let debug_path = containerd_debug_level_toml_path(schema);
+        toml_utils::set_toml_value(&configuration_file, debug_path, "\"debug\"")?;
     }
 
     Ok(())
@@ -257,7 +316,7 @@ pub async fn configure_custom_containerd_runtime(
     let configuration_file = get_containerd_output_path(&paths);
     let pluginid = match paths.plugin_id.as_deref() {
         Some(plugin_id) => plugin_id,
-        None => get_containerd_pluginid(&paths.config_file)?,
+        None => get_containerd_pluginid(&paths.config_file, runtime)?,
     };
 
     log::info!(
@@ -297,6 +356,12 @@ pub async fn configure_custom_containerd_runtime(
     };
 
     write_containerd_runtime_config(&configuration_file, pluginid, &params)?;
+
+    if config.debug {
+        let schema = containerd_config_schema_version(&paths, runtime);
+        let debug_path = containerd_debug_level_toml_path(schema);
+        toml_utils::set_toml_value(&configuration_file, debug_path, "\"debug\"")?;
+    }
 
     Ok(())
 }
@@ -627,6 +692,40 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_containerd_debug_level_toml_path_by_schema_version() {
+        assert_eq!(
+            containerd_debug_level_toml_path(Some(4)),
+            ".plugins.\"io.containerd.server.v1.debug\".level"
+        );
+        assert_eq!(
+            containerd_debug_level_toml_path(Some(5)),
+            ".plugins.\"io.containerd.server.v1.debug\".level"
+        );
+        assert_eq!(containerd_debug_level_toml_path(Some(3)), ".debug.level");
+        assert_eq!(containerd_debug_level_toml_path(None), ".debug.level");
+    }
+
+    #[test]
+    fn test_get_containerd_pluginid_version_4_uses_split_cri() {
+        let f = NamedTempFile::new().unwrap();
+        std::fs::write(f.path(), "version = 4\n").unwrap();
+        assert_eq!(
+            get_containerd_pluginid(f.path().to_str().unwrap(), "containerd").unwrap(),
+            CONTAINERD_V3_RUNTIME_PLUGIN_ID
+        );
+    }
+
+    #[test]
+    fn test_get_containerd_pluginid_version_2() {
+        let f = NamedTempFile::new().unwrap();
+        std::fs::write(f.path(), "version = 2\n").unwrap();
+        assert_eq!(
+            get_containerd_pluginid(f.path().to_str().unwrap(), "containerd").unwrap(),
+            CONTAINERD_V2_CRI_PLUGIN_ID
+        );
+    }
+
     /// CRI images runtime_platforms snapshotter is set only for v3 config when a snapshotter is configured.
     #[rstest]
     #[case(CONTAINERD_V3_RUNTIME_PLUGIN_ID, Some("\"nydus\""), "kata-qemu", true)]
@@ -699,7 +798,7 @@ mod tests {
                 err
             );
             assert!(
-                err.to_string().contains("version = 2") || err.to_string().contains("version = 3"),
+                err.to_string().contains("version = 2") || err.to_string().contains("version >= 3"),
                 "error should mention version: {}",
                 err
             );

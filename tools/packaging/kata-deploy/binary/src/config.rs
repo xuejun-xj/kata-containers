@@ -12,7 +12,8 @@ use std::path::Path;
 use crate::k8s;
 
 /// K3s/RKE2 containerd config template filenames (under the mounted containerd dir).
-/// V3 is for containerd 2.x; V2 is for containerd 1.x.
+/// `config-v3.toml.tmpl` is used when the rendered config uses split-CRI schema (containerd config version >= 3, including 4+).
+/// `config.toml.tmpl` is for legacy CRI (version 2).
 pub const K3S_RKE2_CONTAINERD_V3_TMPL: &str = "/etc/containerd/config-v3.toml.tmpl";
 pub const K3S_RKE2_CONTAINERD_V2_TMPL: &str = "/etc/containerd/config.toml.tmpl";
 
@@ -21,8 +22,8 @@ pub const K3S_RKE2_CONTAINERD_V2_TMPL: &str = "/etc/containerd/config.toml.tmpl"
 /// snapshotter field, and the base name for the data directory and socket path on the host.
 pub const NYDUS_FOR_KATA_TEE: &str = "nydus-for-kata-tee";
 
-/// Resolves whether to use containerd config v3 (true) or v2 (false) for K3s/RKE2.
-/// 1. Tries config.toml (containerd config file): if it exists and contains "version = 3" or "version = 2", use that.
+/// Resolves whether to use the containerd 2.x split-CRI layout (true) or the v1 CRI gRPC layout (false) for K3s/RKE2.
+/// 1. Tries config.toml: if it has `version = 2` use legacy CRI table; if `version >= 3` (including 4+) use split CRI.
 /// 2. Else falls back to the node's containerRuntimeVersion (e.g. "containerd://2.1.5-k3s1").
 /// 3. If neither is available, returns an error.
 pub fn k3s_rke2_resolve_use_v3(
@@ -30,14 +31,17 @@ pub fn k3s_rke2_resolve_use_v3(
     container_runtime_version: Option<&str>,
 ) -> Result<bool> {
     use crate::runtime::manager;
+    use crate::utils::major_version_from_config_toml;
 
     // 1. Try config.toml (generated config that may already exist on the node)
     if let Ok(content) = fs::read_to_string(config_file_path) {
-        if content.contains("version = 3") {
-            return Ok(true);
-        }
-        if content.contains("version = 2") {
-            return Ok(false);
+        if let Some(v) = major_version_from_config_toml(&content) {
+            if v == 2 {
+                return Ok(false);
+            }
+            if v >= 3 {
+                return Ok(true);
+            }
         }
     }
 
@@ -48,8 +52,8 @@ pub fn k3s_rke2_resolve_use_v3(
 
     // 3. Neither source available
     Err(anyhow::anyhow!(
-        "K3s/RKE2: cannot determine containerd config version (v2 vs v3). \
-         Need version from {config_file_path} (version = 2/3) or node containerRuntimeVersion."
+        "K3s/RKE2: cannot determine containerd config version (v2 vs split-CRI). \
+         Need version from {config_file_path} (version = 2 or >= 3) or node containerRuntimeVersion."
     ))
 }
 
@@ -909,6 +913,15 @@ mod tests {
             k3s_rke2_rendered_config_path(),
             "/etc/containerd/config.toml"
         );
+    }
+
+    #[serial]
+    #[test]
+    fn test_k3s_rke2_resolve_use_v3_from_config_version_4_without_node_version() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        std::fs::write(&path, "version = 4\n").unwrap();
+        assert!(k3s_rke2_resolve_use_v3(path.to_str().unwrap(), None).unwrap());
     }
 
     #[rstest]
