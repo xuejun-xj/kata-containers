@@ -5,12 +5,15 @@ on:
         required: true
         type: string
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-build-checks
-  cancel-in-progress: true
+# No workflow-level `concurrency` here: this file is only `workflow_call`'d. Each
+# caller already uses `concurrency` + `cancel-in-progress` so a new push cancels the
+# whole tree. A top-level group on the reusable workflow was too coarse—it matched
+# every parallel `uses` with the same caller + PR + instance, so self-hosted matrix
+# legs (arm, s390x, ppc64le) cancelled each other. Job-level `concurrency` below is
+# enough to supersede in-flight matrix cells on a new run without blocking unrelated
+# parallel callers that share `inputs.instance`.
 
 permissions: {}
-
 name: Build checks
 jobs:
   check:
