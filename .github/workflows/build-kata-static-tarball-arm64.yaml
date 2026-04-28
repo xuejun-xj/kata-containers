@@ -56,7 +56,7 @@ jobs:
           - qemu
           - virtiofsd
     env:
-      PERFORM_ATTESTATION: ${{ matrix.asset == 'agent' && inputs.push-to-registry == 'yes' && 'yes' || 'no' }}
+      PERFORM_ATTESTATION: ${{ inputs.push-to-registry == 'yes' && 'yes' || 'no' }}
     steps:
       - name: Login to Kata Containers quay.io
         if: ${{ inputs.push-to-registry == 'yes' }}
