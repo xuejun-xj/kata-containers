@@ -8,7 +8,7 @@ This document describes the basics of running a kata container, using the docker
 
 - A working docker installation.
 
-> **Note:** Newer versions of docker (v26+) require Kata Containers 3.29.0, and the support is limited to the go runtime with QEMU as the VMM.
+> **Note:** Newer versions of docker (v26+) require Kata Containers 3.29.0 (for the go runtime) and 3.30.0 (for the rust runtime), and the support is only tested with QEMU as the VMM.
 
 ## Install and configure Kata Containers
 
