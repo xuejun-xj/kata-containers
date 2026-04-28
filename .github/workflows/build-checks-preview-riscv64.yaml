@@ -12,9 +12,9 @@ on:
         required: true
         type: string
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-riscv64
-  cancel-in-progress: true
+# Same as `build-checks.yaml`: no workflow-level `concurrency`. Callers (e.g.
+# `ci-nightly-riscv.yaml` matrix over `instance`) must not share one group for all
+# parallel reusable runs; job-level concurrency below is sufficient.
 
 permissions: {}
 
