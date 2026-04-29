@@ -7,7 +7,7 @@
 use std::{collections::HashMap, sync::Arc, thread};
 
 use agent::{types::Device, ARPNeighbor, Agent, OnlineCPUMemRequest, Storage};
-use anyhow::{anyhow, Context, Ok, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use hypervisor::{
     device::{
@@ -250,12 +250,42 @@ impl ResourceManagerInner {
 
     async fn handle_interfaces(&self, network: &dyn Network) -> Result<()> {
         for i in network.interfaces().await.context("get interfaces")? {
-            // update interface
             info!(sl!(), "update interface {:?}", i);
-            self.agent
-                .update_interface(agent::UpdateInterfaceRequest { interface: Some(i) })
-                .await
-                .context("update interface")?;
+
+            // After hotplugging a network device, the guest kernel needs time
+            // to probe it before the interface appears.  This is especially
+            // pronounced on s390x (CCW bus) but can also happen on x86 in
+            // slower CI environments.  Retry a few times.
+            let mut last_error = None;
+            for attempt in 0..10u32 {
+                match self
+                    .agent
+                    .update_interface(agent::UpdateInterfaceRequest {
+                        interface: Some(i.clone()),
+                    })
+                    .await
+                {
+                    core::result::Result::Ok(_) => {
+                        last_error = None;
+                        break;
+                    }
+                    core::result::Result::Err(e) => {
+                        debug!(
+                            sl!(),
+                            "update_interface attempt {} failed, retrying: {:?}",
+                            attempt + 1,
+                            e
+                        );
+                        last_error = Some(e);
+                        if attempt < 9 {
+                            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                        }
+                    }
+                }
+            }
+            if let Some(err) = last_error {
+                return Err(err).context("update interface");
+            }
         }
 
         Ok(())
