@@ -42,6 +42,9 @@ members = [
   # genpolicy
   "src/tools/genpolicy",
 
+  # kata-ctl
+  "src/tools/kata-ctl",
+
   # trace-forwarder
   "src/tools/trace-forwarder",
 
