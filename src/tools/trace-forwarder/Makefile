@@ -9,7 +9,7 @@ include ../../../utils.mk
 default: build
 
 build:
-	@RUSTFLAGS="$(EXTRA_RUSTFLAGS) --deny warnings" cargo build --target $(TRIPLE) --$(BUILD_TYPE)
+	@RUSTFLAGS="$(EXTRA_RUSTFLAGS) --deny warnings" cargo build -p kata-trace-forwarder --target $(TRIPLE) --$(BUILD_TYPE)
 
 static-checks-build:
 	@echo "INFO: static-checks-build do nothing.."
@@ -21,7 +21,7 @@ vendor:
 	cargo vendor
 
 test:
-	@cargo test --all -- --nocapture
+	@cargo test -p kata-trace-forwarder -- --nocapture
 
 install:
 

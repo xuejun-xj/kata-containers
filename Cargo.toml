@@ -42,6 +42,9 @@ members = [
   # genpolicy
   "src/tools/genpolicy",
 
+  # trace-forwarder
+  "src/tools/trace-forwarder",
+
   # kata-deploy (Kubernetes installer binary)
   "tools/packaging/kata-deploy/binary",
 
