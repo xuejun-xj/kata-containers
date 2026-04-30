@@ -653,6 +653,9 @@ name = "bitflags"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
+dependencies = [
+ "serde_core",
+]
 
 [[package]]
 name = "bitmask-enum"
@@ -1327,6 +1330,27 @@ checksum = "25fab6889090c8133f3deb8f73ba3c65a7f456f66436fc012a1b1e272b1e103e"
 dependencies = [
  "generic-array",
  "subtle",
+]
+
+[[package]]
+name = "csv"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52cd9d68cf7efc6ddfaaee42e7288d3a99d613d4b50f76ce9827ae0c6e14f938"
+dependencies = [
+ "csv-core",
+ "itoa",
+ "ryu",
+ "serde_core",
+]
+
+[[package]]
+name = "csv-core"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704a3c26996a80471189265814dbc2c257598b96b8a7feae2d31ace646bb9782"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -2840,6 +2864,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -3115,6 +3140,7 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
  "hashbrown 0.12.3",
+ "serde",
 ]
 
 [[package]]
@@ -3483,7 +3509,7 @@ dependencies = [
  "protobuf",
  "protocols",
  "regex",
- "rstest",
+ "rstest 0.18.2",
  "rtnetlink 0.14.1",
  "runtime-spec",
  "rustjail",
@@ -3533,6 +3559,55 @@ dependencies = [
 ]
 
 [[package]]
+name = "kata-ctl"
+version = "0.0.1"
+dependencies = [
+ "agent",
+ "anyhow",
+ "base64 0.13.1",
+ "chrono",
+ "clap",
+ "csv",
+ "epoll",
+ "futures",
+ "hyper 0.14.32",
+ "kata-sys-util",
+ "kata-types",
+ "lazy_static",
+ "libc",
+ "logging",
+ "micro_http",
+ "nix 0.25.1",
+ "privdrop",
+ "procfs 0.12.0",
+ "prometheus",
+ "quick-xml",
+ "reqwest 0.12.28",
+ "ron",
+ "rstest 0.26.1",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "serde_yaml 0.9.34+deprecated",
+ "serial_test 0.10.0",
+ "shim-interface",
+ "slog",
+ "slog-scope",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
+ "sys-info",
+ "tempfile",
+ "test-utils",
+ "thiserror 1.0.69",
+ "tokio",
+ "toml",
+ "url",
+ "virt_container",
+ "vmm-sys-util 0.15.0",
+]
+
+[[package]]
 name = "kata-deploy"
 version = "0.1.0"
 dependencies = [
@@ -3544,7 +3619,7 @@ dependencies = [
  "libc",
  "log",
  "regex",
- "rstest",
+ "rstest 0.18.2",
  "serde_json",
  "serde_yaml 0.9.34+deprecated",
  "serial_test 0.10.0",
@@ -3570,7 +3645,7 @@ dependencies = [
  "oci-spec 0.8.4",
  "pci-ids",
  "rand 0.10.1",
- "rstest",
+ "rstest 0.18.2",
  "runtime-spec",
  "serde",
  "serde_json",
@@ -3616,7 +3691,7 @@ dependencies = [
  "num_cpus",
  "oci-spec 0.8.4",
  "regex",
- "rstest",
+ "rstest 0.18.2",
  "safe-path 0.1.0",
  "serde",
  "serde-enum-str",
@@ -4032,6 +4107,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "micro_http"
+version = "0.1.0"
+source = "git+https://github.com/firecracker-microvm/micro-http?rev=5c2254d6cf4f32a668d0d8e57ba20bebad9d4fba#5c2254d6cf4f32a668d0d8e57ba20bebad9d4fba"
+dependencies = [
+ "libc",
+ "vmm-sys-util 0.15.0",
 ]
 
 [[package]]
@@ -5719,6 +5803,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "quick-xml"
+version = "0.28.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ce5e73202a820a31f8a0ee32ada5e21029c81fd9e3ebf668a40832e4219d9d1"
+dependencies = [
+ "memchr",
+ "serde",
+]
+
+[[package]]
 name = "quinn"
 version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6075,6 +6169,8 @@ dependencies = [
  "native-tls",
  "percent-encoding",
  "pin-project-lite",
+ "quinn",
+ "rustls",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -6082,6 +6178,7 @@ dependencies = [
  "sync_wrapper 1.0.2",
  "tokio",
  "tokio-native-tls",
+ "tokio-rustls",
  "tower 0.5.3",
  "tower-http",
  "tower-service",
@@ -6089,6 +6186,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -6158,7 +6256,7 @@ dependencies = [
  "oci-spec 0.8.4",
  "persist",
  "rand 0.10.1",
- "rstest",
+ "rstest 0.18.2",
  "rtnetlink 0.19.0",
  "scopeguard",
  "serde",
@@ -6236,6 +6334,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ron"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
+dependencies = [
+ "base64 0.21.7",
+ "bitflags 2.11.0",
+ "serde",
+ "serde_derive",
+]
+
+[[package]]
 name = "rstest"
 version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6243,8 +6353,19 @@ checksum = "97eeab2f3c0a199bc4be135c36c924b6590b88c377d416494288c14f2db30199"
 dependencies = [
  "futures",
  "futures-timer",
- "rstest_macros",
+ "rstest_macros 0.18.2",
  "rustc_version",
+]
+
+[[package]]
+name = "rstest"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5a3193c063baaa2a95a33f03035c8a72b83d97a54916055ba22d35ed3839d49"
+dependencies = [
+ "futures-timer",
+ "futures-util",
+ "rstest_macros 0.26.1",
 ]
 
 [[package]]
@@ -6255,6 +6376,24 @@ checksum = "d428f8247852f894ee1be110b375111b586d4fa431f6c46e64ba5a0dcccbe605"
 dependencies = [
  "cfg-if 1.0.4",
  "glob",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "relative-path",
+ "rustc_version",
+ "syn 2.0.117",
+ "unicode-ident",
+]
+
+[[package]]
+name = "rstest_macros"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c845311f0ff7951c5506121a9ad75aec44d083c31583b2ea5a30bcb0b0abba0"
+dependencies = [
+ "cfg-if 1.0.4",
+ "glob",
+ "proc-macro-crate 3.5.0",
  "proc-macro2",
  "quote",
  "regex",
@@ -6861,6 +7000,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_with"
+version = "2.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07ff71d2c147a7b57362cead5e22f772cd52f6ab31cfcd9edcd7f6aeb2a0afbe"
+dependencies = [
+ "base64 0.13.1",
+ "chrono",
+ "hex",
+ "indexmap 1.9.3",
+ "serde",
+ "serde_json",
+ "serde_with_macros",
+ "time",
+]
+
+[[package]]
+name = "serde_with_macros"
+version = "2.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "881b6f881b17d13214e5d494c939ebab463d01264ce1811e9d4ac3a882e7695f"
+dependencies = [
+ "darling 0.20.11",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "serde_yaml"
 version = "0.8.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7380,6 +7547,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "sys-info"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b3a0d0aba8bf96a0e1ddfdc352fc53b3df7f39318c71854910c3c4b024ae52c"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]
@@ -8673,6 +8850,15 @@ name = "webpki-root-certs"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "804f18a4ac2676ffb4e8b5b5fa9ae38af06df08162314f96a68d2a363e21a8ca"
+dependencies = [
+ "rustls-pki-types",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52f5ee44c96cf55f1b349600768e3ece3a8f26010c05265ab73f945bb1a2eb9d"
 dependencies = [
  "rustls-pki-types",
 ]
