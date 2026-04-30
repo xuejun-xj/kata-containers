@@ -991,50 +991,59 @@ async fn configure_experimental_force_guest_pull(config_file: &Path) -> Result<(
 }
 
 async fn configure_mariner(config: &Config) -> Result<()> {
-    let config_path = format!(
-        "{}/share/defaults/kata-containers/configuration-clh.toml",
-        config.host_install_dir
-    );
-    let config_file = Path::new(&config_path);
-
-    if !config_file.exists() {
-        return Ok(());
-    }
-
     let mariner_hypervisor_name = "clh";
+    let config_paths = [
+        format!(
+            "{}/share/defaults/kata-containers/configuration-clh.toml",
+            config.host_install_dir
+        ),
+        format!(
+            "{}/share/defaults/kata-containers/runtime-rs/configuration-clh-runtime-rs.toml",
+            config.host_install_dir
+        ),
+    ];
 
-    let static_resource_mgmt_path = "runtime.static_sandbox_resource_mgmt";
-    set_toml_bool_to_true(config_file, static_resource_mgmt_path)?;
+    for config_path in config_paths {
+        let config_file = Path::new(&config_path);
 
-    let clh_path = format!("{}/bin/cloud-hypervisor-glibc", config.dest_dir);
-    let valid_paths_field = format!("hypervisor.{mariner_hypervisor_name}.valid_hypervisor_paths");
-    let existing_paths =
-        toml_utils::get_toml_array(config_file, &valid_paths_field).unwrap_or_else(|_| Vec::new());
+        if !config_file.exists() {
+            continue;
+        }
 
-    if !existing_paths.iter().any(|p| p == &clh_path) {
-        let mut new_paths = existing_paths.clone();
-        new_paths.push(clh_path.clone());
-        log::debug!(
-            "Updating {} in {}: old={:?} new={:?}",
-            valid_paths_field,
-            config_file.display(),
-            existing_paths,
-            new_paths
-        );
-        toml_utils::set_toml_array(config_file, &valid_paths_field, &new_paths)?;
-    }
+        let static_resource_mgmt_path = "runtime.static_sandbox_resource_mgmt";
+        set_toml_bool_to_true(config_file, static_resource_mgmt_path)?;
 
-    let path_field = format!("hypervisor.{mariner_hypervisor_name}.path");
-    let current_path = toml_utils::get_toml_value(config_file, &path_field).unwrap_or_default();
-    if !current_path.contains(&clh_path) {
-        log::debug!(
-            "Updating {} in {}: old=\"{}\" new=\"{}\"",
-            path_field,
-            config_file.display(),
-            current_path,
-            clh_path
-        );
-        toml_utils::set_toml_value(config_file, &path_field, &format!("\"{clh_path}\""))?;
+        let clh_path = format!("{}/bin/cloud-hypervisor-glibc", config.dest_dir);
+        let valid_paths_field =
+            format!("hypervisor.{mariner_hypervisor_name}.valid_hypervisor_paths");
+        let existing_paths = toml_utils::get_toml_array(config_file, &valid_paths_field)
+            .unwrap_or_else(|_| Vec::new());
+
+        if !existing_paths.iter().any(|p| p == &clh_path) {
+            let mut new_paths = existing_paths.clone();
+            new_paths.push(clh_path.clone());
+            log::debug!(
+                "Updating {} in {}: old={:?} new={:?}",
+                valid_paths_field,
+                config_file.display(),
+                existing_paths,
+                new_paths
+            );
+            toml_utils::set_toml_array(config_file, &valid_paths_field, &new_paths)?;
+        }
+
+        let path_field = format!("hypervisor.{mariner_hypervisor_name}.path");
+        let current_path = toml_utils::get_toml_value(config_file, &path_field).unwrap_or_default();
+        if !current_path.contains(&clh_path) {
+            log::debug!(
+                "Updating {} in {}: old=\"{}\" new=\"{}\"",
+                path_field,
+                config_file.display(),
+                current_path,
+                clh_path
+            );
+            toml_utils::set_toml_value(config_file, &path_field, &format!("\"{clh_path}\""))?;
+        }
     }
 
     Ok(())
