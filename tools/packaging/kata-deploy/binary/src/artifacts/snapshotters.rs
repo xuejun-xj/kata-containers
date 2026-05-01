@@ -142,7 +142,7 @@ pub async fn configure_snapshotter(
     // Runtime plugin id (from paths or by reading config), then map to table where disable_snapshot_annotations lives.
     let runtime_plugin_id = match &paths.plugin_id {
         Some(id) => id.as_str(),
-        None => containerd::get_containerd_pluginid(&paths.config_file)?,
+        None => containerd::get_containerd_pluginid(&paths.config_file, runtime)?,
     };
     let pluginid =
         containerd::pluginid_for_snapshotter_annotations(runtime_plugin_id, &paths.config_file)?;
