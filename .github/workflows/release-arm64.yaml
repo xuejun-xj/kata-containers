@@ -12,7 +12,7 @@ on:
         required: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-release-arm64
   cancel-in-progress: false # Note - don't cancel the in progress build as we could end up with inconsistent results
 
 permissions: {}
