@@ -39,8 +39,6 @@ on:
         required: true
       CI_HKD_PATH:
         required: true
-      ITA_KEY:
-        required: true
       QUAY_DEPLOYER_PASSWORD:
         required: true
       NGC_API_KEY:
@@ -338,7 +336,6 @@ jobs:
       AZ_APPID: ${{ secrets.AZ_APPID }}
       AZ_TENANT_ID: ${{ secrets.AZ_TENANT_ID }}
       AZ_SUBSCRIPTION_ID: ${{ secrets.AZ_SUBSCRIPTION_ID }}
-      ITA_KEY: ${{ secrets.ITA_KEY }}
 
   run-k8s-tests-on-zvsi:
     if: ${{ inputs.skip-test != 'yes' }}

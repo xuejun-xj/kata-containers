@@ -41,8 +41,6 @@ on:
         required: true
       AZ_SUBSCRIPTION_ID:
         required: true
-      ITA_KEY:
-        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-coco
@@ -81,7 +79,6 @@ jobs:
       PULL_TYPE: "guest-pull"
       AUTHENTICATED_IMAGE_USER: ${{ vars.AUTHENTICATED_IMAGE_USER }}
       AUTHENTICATED_IMAGE_PASSWORD: ${{ secrets.AUTHENTICATED_IMAGE_PASSWORD }}
-      GH_ITA_KEY: ${{ secrets.ITA_KEY }}
       AUTO_GENERATE_POLICY: "yes"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -116,8 +113,6 @@ jobs:
       - name: Deploy CoCo KBS
         timeout-minutes: 10
         run: bash tests/integration/kubernetes/gha-run.sh deploy-coco-kbs
-        env:
-          ITA_KEY: ${{ env.KATA_HYPERVISOR == 'qemu-tdx' && env.GH_ITA_KEY || '' }}
 
       - name: Install `kbs-client`
         timeout-minutes: 10
@@ -139,9 +134,7 @@ jobs:
       - name: Delete CoCo KBS
         if: always()
         timeout-minutes: 10
-        run: |
-          [[ "${KATA_HYPERVISOR}" == "qemu-tdx" ]] && echo "ITA_KEY=${GH_ITA_KEY}" >> "${GITHUB_ENV}"
-          bash tests/integration/kubernetes/gha-run.sh delete-coco-kbs
+        run: bash tests/integration/kubernetes/gha-run.sh delete-coco-kbs
 
   # Generate jobs for testing CoCo on non-TEE environments
   run-k8s-tests-coco-nontee:
