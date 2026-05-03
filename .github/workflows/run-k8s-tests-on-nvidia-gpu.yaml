@@ -24,6 +24,10 @@ on:
         required: false
         type: string
         default: ""
+      enable-nvrc-trace:
+        required: false
+        type: boolean
+        default: true
     secrets:
       NGC_API_KEY:
         required: true
@@ -111,6 +115,7 @@ jobs:
         run: bash tests/integration/kubernetes/gha-run.sh run-nv-tests
         env:
           NGC_API_KEY: ${{ secrets.NGC_API_KEY }}
+          ENABLE_NVRC_TRACE: ${{ inputs.enable-nvrc-trace }}
 
       - name: Report tests
         if: always()
