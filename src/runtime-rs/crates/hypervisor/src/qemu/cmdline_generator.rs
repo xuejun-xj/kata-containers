@@ -72,6 +72,10 @@ impl VirtioBusType {
             VirtioBusType::Ccw => "ccw",
         }
     }
+
+    fn supports_disable_modern(&self) -> bool {
+        matches!(self, VirtioBusType::Pci)
+    }
 }
 
 impl Display for VirtioBusType {
@@ -1134,7 +1138,7 @@ impl ToQemuParams for VhostVsock {
     async fn qemu_params(&self) -> Result<Vec<String>> {
         let mut params = Vec::new();
         params.push(format!("vhost-vsock-{}", self.bus_type));
-        if self.disable_modern {
+        if self.disable_modern && self.bus_type.supports_disable_modern() {
             params.push("disable-modern=true".to_owned());
         }
         if self.iommu_platform {
@@ -1364,7 +1368,7 @@ impl ToQemuParams for DeviceVirtioNet {
 
         params.push(format!("mac={:?}", self.mac_address));
 
-        if self.disable_modern {
+        if self.disable_modern && self.bus_type.supports_disable_modern() {
             params.push("disable-modern=true".to_owned());
         }
         if self.iommu_platform {
@@ -1813,7 +1817,7 @@ impl ToQemuParams for DeviceVirtioScsi {
         let mut params = Vec::new();
         params.push(format!("virtio-scsi-{}", self.bus_type));
         params.push(format!("id={}", self.id));
-        if self.disable_modern {
+        if self.disable_modern && self.bus_type.supports_disable_modern() {
             params.push("disable-modern=true".to_owned());
         }
         if !self.iothread.is_empty() {
@@ -2186,6 +2190,10 @@ fn is_running_in_vm() -> Result<bool> {
 }
 
 fn should_disable_modern() -> bool {
+    if !bus_type().supports_disable_modern() {
+        return false;
+    }
+
     match is_running_in_vm() {
         Ok(retval) => retval,
         Err(err) => {

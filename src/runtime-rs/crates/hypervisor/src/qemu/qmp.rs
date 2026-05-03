@@ -486,14 +486,44 @@ impl Qmp {
         netdev: &Netdev,
         virtio_net_device: &DeviceVirtioNet,
     ) -> Result<()> {
-        debug!(
-            sl!(),
-            "hotplug_network_device(): PCI before {}: {:#?}",
-            virtio_net_device.get_netdev_id(),
-            self.qmp.execute(&qapi_qmp::query_pci {})?
-        );
+        let use_ccw_bus = crate::utils::uses_native_ccw_bus();
+        let netdev_id = netdev.get_id().clone();
 
-        let (bus, slot) = self.find_free_slot()?;
+        let mut netdev_frontend_args = Dictionary::new();
+        netdev_frontend_args.insert(
+            "netdev".to_owned(),
+            virtio_net_device.get_netdev_id().clone().into(),
+        );
+        netdev_frontend_args.insert("mac".to_owned(), virtio_net_device.get_mac_addr().into());
+        netdev_frontend_args.insert("mq".to_owned(), true.into());
+
+        let frontend_id = format!("frontend-{}", virtio_net_device.get_netdev_id());
+
+        let bus = if use_ccw_bus {
+            let subchannel = self.ccw_subchannel.as_mut().ok_or_else(|| {
+                anyhow!("CCW subchannel not available for virtio-net-ccw hotplug")
+            })?;
+            let slot = subchannel
+                .add_device(&frontend_id)
+                .map_err(|e| anyhow!("CCW subchannel add_device failed: {:?}", e))?;
+            let devno = subchannel.address_format_ccw(slot);
+            netdev_frontend_args.insert("devno".to_owned(), devno.into());
+            None
+        } else {
+            let (bus, slot) = self.find_free_slot()?;
+            netdev_frontend_args.insert("addr".to_owned(), format!("{slot:02}").into());
+            // As the golang runtime documents the vectors computation, it's
+            // 2N+2 vectors, N for tx queues, N for rx queues, 1 for config,
+            // and one for possible control vq.  PCI-specific (MSI-X).
+            netdev_frontend_args.insert(
+                "vectors".to_owned(),
+                (2 * virtio_net_device.get_num_queues() + 2).into(),
+            );
+            if virtio_net_device.get_disable_modern() {
+                netdev_frontend_args.insert("disable-modern".to_owned(), true.into());
+            }
+            Some(bus)
+        };
 
         let mut fd_names = vec![];
         for (idx, fd) in netdev.get_fds().iter().enumerate() {
@@ -511,7 +541,7 @@ impl Qmp {
 
         self.qmp
             .execute(&qapi_qmp::netdev_add(qapi_qmp::Netdev::tap {
-                id: netdev.get_id().clone(),
+                id: netdev_id.clone(),
                 tap: qapi_qmp::NetdevTapOptions {
                     br: None,
                     downscript: None,
@@ -539,38 +569,48 @@ impl Qmp {
                     vhostforce: None,
                     vnet_hdr: None,
                 },
-            }))?;
+            }))
+            .map_err(|e| {
+                if use_ccw_bus {
+                    if let Some(subchannel) = self.ccw_subchannel.as_mut() {
+                        let _ = subchannel.remove_device(&frontend_id);
+                    }
+                }
 
-        let mut netdev_frontend_args = Dictionary::new();
-        netdev_frontend_args.insert(
-            "netdev".to_owned(),
-            virtio_net_device.get_netdev_id().clone().into(),
-        );
-        netdev_frontend_args.insert("addr".to_owned(), format!("{slot:02}").into());
-        netdev_frontend_args.insert("mac".to_owned(), virtio_net_device.get_mac_addr().into());
-        netdev_frontend_args.insert("mq".to_owned(), true.into());
-        // As the golang runtime documents the vectors computation, it's
-        // 2N+2 vectors, N for tx queues, N for rx queues, 1 for config, and one for possible control vq
-        netdev_frontend_args.insert(
-            "vectors".to_owned(),
-            (2 * virtio_net_device.get_num_queues() + 2).into(),
-        );
-        if virtio_net_device.get_disable_modern() {
-            netdev_frontend_args.insert("disable-modern".to_owned(), true.into());
-        }
+                anyhow!(e)
+            })?;
 
-        self.qmp.execute(&qmp::device_add {
-            bus: Some(bus),
-            id: Some(format!("frontend-{}", virtio_net_device.get_netdev_id())),
+        let device_add_result = self.qmp.execute(&qmp::device_add {
+            bus,
+            id: Some(frontend_id.clone()),
             driver: virtio_net_device.get_device_driver().clone(),
             arguments: netdev_frontend_args,
-        })?;
+        });
+        if let Err(e) = device_add_result {
+            if use_ccw_bus {
+                if let Some(subchannel) = self.ccw_subchannel.as_mut() {
+                    let _ = subchannel.remove_device(&frontend_id);
+                }
+            }
+
+            if let Err(del_err) = self.qmp.execute(&qmp::netdev_del {
+                id: netdev_id.clone(),
+            }) {
+                warn!(
+                    sl!(),
+                    "hotplug_network_device(): netdev_del failed for {} after device_add error {:?}: {:?}",
+                    netdev_id,
+                    e,
+                    del_err
+                );
+            }
+
+            return Err(e.into());
+        }
 
         debug!(
             sl!(),
-            "hotplug_network_device(): PCI after {}: {:#?}",
-            virtio_net_device.get_netdev_id(),
-            self.qmp.execute(&qapi_qmp::query_pci {})?
+            "hotplug_network_device(): successfully added {}", frontend_id
         );
 
         Ok(())
