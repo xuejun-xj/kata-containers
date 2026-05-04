@@ -572,10 +572,7 @@ impl Config {
                 // versioned drop-in dir (config.toml.d or config-v3.toml.d). If the import is
                 // missing we bail; the cluster must configure the template with the import
                 // (e.g. in tests or via a custom k3s/RKE2 setup). Refs: docs.k3s.io/advanced#configuring-containerd
-                let container_runtime_version =
-                    k8s::get_node_field(self, ".status.nodeInfo.containerRuntimeVersion")
-                        .await
-                        .ok();
+                let container_runtime_version = k8s::get_container_runtime_version(self).await.ok();
                 let use_v3 = k3s_rke2_resolve_use_v3(
                     k3s_rke2_rendered_config_path(),
                     container_runtime_version.as_deref(),
