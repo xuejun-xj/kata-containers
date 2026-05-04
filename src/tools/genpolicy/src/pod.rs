@@ -195,6 +195,9 @@ struct Affinity {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct PodAffinity {
     #[serde(skip_serializing_if = "Option::is_none")]
+    preferredDuringSchedulingIgnoredDuringExecution: Option<Vec<WeightedPodAffinityTerm>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     requiredDuringSchedulingIgnoredDuringExecution: Option<Vec<PodAffinityTerm>>,
 }
 
@@ -206,7 +209,6 @@ struct PodAntiAffinity {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     requiredDuringSchedulingIgnoredDuringExecution: Option<Vec<PodAffinityTerm>>,
-    // TODO: additional fields.
 }
 
 /// See Reference / Kubernetes API / Workload Resources / Pod.
@@ -223,7 +225,18 @@ struct PodAffinityTerm {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     labelSelector: Option<yaml::LabelSelector>,
-    // TODO: additional fields.
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    matchLabelKeys: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mismatchLabelKeys: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    namespaceSelector: Option<yaml::LabelSelector>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    namespaces: Option<Vec<String>>,
 }
 
 /// See Reference / Kubernetes API / Workload Resources / Pod.
