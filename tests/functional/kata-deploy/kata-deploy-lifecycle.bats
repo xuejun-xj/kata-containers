@@ -35,6 +35,9 @@ LIFECYCLE_POD_NAME="kata-lifecycle-test"
 # Run a command on the host node's filesystem using a short-lived privileged pod.
 # The host root is mounted at /host inside the pod.
 # Usage: run_on_host "test -d /host/opt/kata && echo YES || echo NO"
+#
+# We avoid `kubectl run --rm -i` because rke2 injects session-recording banners
+# into interactive pods, polluting stdout. Instead: create, wait, fetch logs, delete.
 run_on_host() {
 	local cmd="$1"
 	local node_name
@@ -43,7 +46,7 @@ run_on_host() {
 
 	kubectl run "${pod_name}" \
 		--image=quay.io/kata-containers/alpine-bash-curl:latest \
-		--restart=Never --rm -i \
+		--restart=Never \
 		--overrides="{
 			\"spec\": {
 				\"nodeName\": \"${node_name}\",
@@ -59,7 +62,21 @@ run_on_host() {
 				}],
 				\"volumes\": [{\"name\": \"host\", \"hostPath\": {\"path\": \"/\"}}]
 			}
-		}"
+		}" > /dev/null 2>&1
+
+	local deadline=$((SECONDS + 60))
+	while (( SECONDS < deadline )); do
+		local phase
+		phase=$(kubectl get pod "${pod_name}" -o jsonpath='{.status.phase}' 2>/dev/null) || true
+		case "${phase}" in
+			Succeeded|Failed) break ;;
+		esac
+		sleep 1
+	done
+
+	kubectl logs "${pod_name}" 2>/dev/null
+	kubectl delete pod "${pod_name}" --ignore-not-found=true > /dev/null 2>&1
+	[[ "${phase}" == "Succeeded" ]]
 }
 
 setup_file() {
@@ -192,9 +209,19 @@ EOF
 	echo "# /opt/kata: ${output}" >&3
 	[[ "${output}" == *"REMOVED"* ]]
 
-	# Containerd must still be healthy and reporting a valid version
-	local container_runtime_version
-	container_runtime_version=$(kubectl get nodes --no-headers -o custom-columns=CONTAINER_RUNTIME:.status.nodeInfo.containerRuntimeVersion)
+	# Containerd must still be healthy and reporting a valid version.
+	# After a CRI restart the kubelet may briefly report "Unknown" until it
+	# re-probes the runtime, so retry for up to 60 seconds.
+	local container_runtime_version=""
+	local retries=0
+	while [[ ${retries} -lt 30 ]]; do
+		container_runtime_version=$(kubectl get nodes --no-headers -o custom-columns=CONTAINER_RUNTIME:.status.nodeInfo.containerRuntimeVersion)
+		if [[ "${container_runtime_version}" != *"Unknown"* ]]; then
+			break
+		fi
+		retries=$((retries + 1))
+		sleep 2
+	done
 	echo "# Container runtime version: ${container_runtime_version}" >&3
 	[[ "${container_runtime_version}" != *"Unknown"* ]]
 

@@ -101,7 +101,14 @@ deploy_kata() {
 		--wait --timeout "${HELM_TIMEOUT:-10m}"
 	)
 
-	# Run helm install
+	# Run helm install.
+	# --wait makes helm block until all DaemonSet pods are Ready. The readiness
+	# probe returns 200 only after install completes (artifacts extracted, CRI
+	# restarted, node labeled), so no extra rollout/sleep polling is needed.
+	#
+	# Exception: on single-node clusters with maxUnavailable=1, helm --wait can
+	# consider the DaemonSet ready with 0 ready pods. Belt-and-suspenders: also
+	# kubectl wait on the pod readiness condition.
 	"${helm_cmd[@]}"
 	local ret=$?
 
@@ -112,11 +119,8 @@ deploy_kata() {
 		return "${ret}"
 	fi
 
-	# Wait for daemonset to be ready
-	kubectl -n "${HELM_NAMESPACE}" rollout status daemonset/kata-deploy --timeout=300s
-
-	# Give it a moment to configure runtimes
-	sleep 60
+	kubectl -n "${HELM_NAMESPACE}" wait pod -l name=kata-deploy \
+		--for=condition=Ready --timeout="${HELM_TIMEOUT:-10m}" 2>/dev/null || true
 
 	return 0
 }

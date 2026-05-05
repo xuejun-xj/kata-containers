@@ -303,8 +303,45 @@ spec:
         - name: CUSTOM_RUNTIMES_ENABLED
           value: "true"
 {{- end }}
+{{- $healthDefaults := dict
+    "port" 8090
+    "startupProbe" (dict "enabled" true "initialDelaySeconds" 1 "periodSeconds" 10 "failureThreshold" 60 "timeoutSeconds" 3)
+    "livenessProbe" (dict "enabled" true "periodSeconds" 30 "failureThreshold" 3 "timeoutSeconds" 3)
+    "readinessProbe" (dict "enabled" true "periodSeconds" 10 "failureThreshold" 3 "timeoutSeconds" 3)
+}}
+{{- $health := merge (.Values.health | default dict) $healthDefaults }}
+        - name: HEALTH_PORT
+          value: {{ $health.port | quote }}
         securityContext:
           privileged: true
+{{- if $health.startupProbe.enabled }}
+        startupProbe:
+          httpGet:
+            path: /readyz
+            port: {{ $health.port }}
+          initialDelaySeconds: {{ $health.startupProbe.initialDelaySeconds }}
+          periodSeconds: {{ $health.startupProbe.periodSeconds }}
+          failureThreshold: {{ $health.startupProbe.failureThreshold }}
+          timeoutSeconds: {{ $health.startupProbe.timeoutSeconds }}
+{{- end }}
+{{- if $health.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ $health.port }}
+          periodSeconds: {{ $health.livenessProbe.periodSeconds }}
+          failureThreshold: {{ $health.livenessProbe.failureThreshold }}
+          timeoutSeconds: {{ $health.livenessProbe.timeoutSeconds }}
+{{- end }}
+{{- if $health.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: {{ $health.port }}
+          periodSeconds: {{ $health.readinessProbe.periodSeconds }}
+          failureThreshold: {{ $health.readinessProbe.failureThreshold }}
+          timeoutSeconds: {{ $health.readinessProbe.timeoutSeconds }}
+{{- end }}
         volumeMounts:
         - name: crio-conf
           mountPath: /etc/crio/

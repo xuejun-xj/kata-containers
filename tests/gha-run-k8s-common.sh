@@ -1049,17 +1049,23 @@ VERIFICATION_POD_EOF
 		return 1
 	fi
 
-	# `helm install --wait` does not take effect on single replicas and maxUnavailable=1 DaemonSets
-	# like kata-deploy on CI. So wait for pods being Running in the "traditional" way.
-	local cmd
-	cmd="kubectl -n kube-system get -l name=kata-deploy pod 2>/dev/null | grep '\<Running\>'"
-	waitForProcess "${KATA_DEPLOY_WAIT_TIMEOUT}" 10 "${cmd}"
-
-	# FIXME: This is needed as the kata-deploy pod will be set to "Ready"
-	# when it starts running, which may cause issues like not having the
-	# node properly labeled or the artefacts properly deployed when the
-	# tests actually start running.
-	sleep 60s
+	# helm --wait is ineffective for single-node clusters with maxUnavailable=1
+	# (the DaemonSet is considered ready with 0 ready pods). First wait until at
+	# least one kata-deploy pod exists, then wait on the pod readiness condition
+	# instead — the readiness probe (/readyz) returns 200 only after install
+	# completes (artifacts extracted, CRI restarted, node labeled).
+	local pod_wait_deadline=$((SECONDS + KATA_DEPLOY_WAIT_TIMEOUT))
+	while true; do
+		if [[ -n "$(kubectl -n kube-system get pod -l name=kata-deploy -o name 2>/dev/null)" ]]; then
+			break
+		fi
+		if (( SECONDS >= pod_wait_deadline )); then
+			echo "ERROR: Timed out waiting for kata-deploy pod to be created"
+			return 1
+		fi
+		sleep 1
+	done
+	kubectl -n kube-system wait pod -l name=kata-deploy --for=condition=Ready --timeout="${KATA_DEPLOY_WAIT_TIMEOUT}s"
 
 	echo "::group::kata-deploy logs"
 	kubectl_retry -n kube-system logs -l name=kata-deploy
