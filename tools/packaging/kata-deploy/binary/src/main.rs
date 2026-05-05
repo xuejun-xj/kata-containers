@@ -28,7 +28,21 @@ enum Action {
     Reset,
 }
 
-#[tokio::main]
+// Cap the tokio runtime to a small fixed number of worker threads. The default
+// multi-thread runtime allocates `num_cpus()` workers (each with a ~2 MiB
+// stack), which on a 200+ vCPU GPU node is the dominant contributor to the
+// DaemonSet pod's VmData reservation (~440 MiB). Two workers is plenty:
+//
+//   - the install path is overwhelmingly I/O-bound,
+//   - it shells out to `nsenter ... systemctl restart …` (synchronous,
+//     blocking calls that wedge the thread they run on for tens of seconds);
+//     a second worker keeps the health server able to answer kubelet probes
+//     within timeoutSeconds while the first is blocked.
+//
+// `current_thread` would be tighter still, but starves the health server the
+// moment a host_systemctl call runs — the kubelet then fails the readiness
+// probe and the pod is restarted before install can finish.
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<()> {
     // Set log level based on DEBUG environment variable
     // This must be done before initializing the logger
