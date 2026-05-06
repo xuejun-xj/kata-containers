@@ -869,6 +869,8 @@ impl EnvVar {
                 _ => {
                     if let Some(value) = self.get_annotation_value(path, resource) {
                         &value.to_string()
+                    } else if let Some(value) = self.get_label_value(path, resource) {
+                        &value.to_string()
                     } else {
                         panic!(
                             "Env var: unsupported field reference: {}",
@@ -908,6 +910,25 @@ impl EnvVar {
 
             // TODO: should missing annotations be handled differently?
             return Some("$(todo-annotation)".to_string());
+        }
+        None
+    }
+
+    fn get_label_value(&self, reference: &str, resource: &dyn yaml::K8sResource) -> Option<String> {
+        let prefix = "metadata.labels['";
+        let suffix = "']";
+        if reference.starts_with(prefix) && reference.ends_with(suffix) {
+            if let Some(labels) = resource.get_labels() {
+                let start = prefix.len();
+                let end = reference.len() - 2;
+                let label = reference[start..end].to_string();
+
+                if let Some(value) = labels.get(&label) {
+                    return Some(value.clone());
+                } else {
+                    panic!("Can't find the value of label {}.", &label);
+                }
+            }
         }
         None
     }
@@ -1002,6 +1023,10 @@ impl yaml::K8sResource for Pod {
 
     fn get_pod_security_context(&self) -> Option<&PodSecurityContext> {
         self.spec.securityContext.as_ref()
+    }
+
+    fn get_labels(&self) -> &Option<BTreeMap<String, String>> {
+        &self.metadata.labels
     }
 }
 
