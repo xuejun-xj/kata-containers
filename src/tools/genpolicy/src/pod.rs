@@ -640,7 +640,7 @@ impl Container {
         config_maps: &Vec<config_map::ConfigMap>,
         secrets: &Vec<secret::Secret>,
         namespace: &str,
-        annotations: &Option<BTreeMap<String, String>>,
+        resource: &dyn yaml::K8sResource,
         service_account_name: &str,
     ) {
         if let Some(source_env) = &self.env {
@@ -649,7 +649,7 @@ impl Container {
                     config_maps,
                     secrets,
                     namespace,
-                    annotations,
+                    resource,
                     service_account_name,
                 );
                 let src_string = format!("{}={value}", &env_variable.name);
@@ -789,7 +789,7 @@ impl EnvVar {
         config_maps: &Vec<config_map::ConfigMap>,
         secrets: &Vec<secret::Secret>,
         namespace: &str,
-        annotations: &Option<BTreeMap<String, String>>,
+        resource: &dyn yaml::K8sResource,
         service_account_name: &str,
     ) -> String {
         // When neither `value` nor `valueFrom` were specified, the default value is an empty string:
@@ -801,7 +801,7 @@ impl EnvVar {
                 config_maps,
                 secrets,
                 namespace,
-                annotations,
+                resource,
                 service_account_name,
             )
             .unwrap_or_default()
@@ -813,7 +813,7 @@ impl EnvVar {
         config_maps: &Vec<config_map::ConfigMap>,
         secrets: &Vec<secret::Secret>,
         namespace: &str,
-        annotations: &Option<BTreeMap<String, String>>,
+        resource: &dyn yaml::K8sResource,
         service_account_name: &str,
     ) -> Option<String> {
         if let Some(value_from) = &self.valueFrom {
@@ -825,12 +825,9 @@ impl EnvVar {
                 return Some(value);
             }
 
-            if let Some(value) = self.get_value_from_field_ref(
-                value_from,
-                namespace,
-                annotations,
-                service_account_name,
-            ) {
+            if let Some(value) =
+                self.get_value_from_field_ref(value_from, namespace, resource, service_account_name)
+            {
                 return Some(value);
             }
 
@@ -850,7 +847,7 @@ impl EnvVar {
         &self,
         value_from: &EnvVarSource,
         namespace: &str,
-        annotations: &Option<BTreeMap<String, String>>,
+        resource: &dyn yaml::K8sResource,
         service_account_name: &str,
     ) -> Option<String> {
         if let Some(field_ref) = &value_from.fieldRef {
@@ -870,7 +867,7 @@ impl EnvVar {
                 "spec.nodeName" => "$(node-name)",
                 "spec.serviceAccountName" => service_account_name,
                 _ => {
-                    if let Some(value) = self.get_annotation_value(path, annotations) {
+                    if let Some(value) = self.get_annotation_value(path, resource) {
                         &value.to_string()
                     } else {
                         panic!(
@@ -889,12 +886,12 @@ impl EnvVar {
     fn get_annotation_value(
         &self,
         reference: &str,
-        anno: &Option<BTreeMap<String, String>>,
+        resource: &dyn yaml::K8sResource,
     ) -> Option<String> {
         let prefix = "metadata.annotations['";
         let suffix = "']";
         if reference.starts_with(prefix) && reference.ends_with(suffix) {
-            if let Some(annotations) = anno {
+            if let Some(annotations) = resource.get_annotations() {
                 let start = prefix.len();
                 let end = reference.len() - 2;
                 let annotation = reference[start..end].to_string();
