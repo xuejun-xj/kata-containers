@@ -91,11 +91,7 @@ create_and_wait_for_pod_ready() {
 	wait_for_pod_ready
 }
 
-@test "Successful pod with auto-generated policy" {
-	create_and_wait_for_pod_ready
-}
-
-@test "Able to read env variables sourced from configmap using envFrom" {
+@test "Successful pod and able to read env variables sourced from configmap using envFrom" {
 	create_and_wait_for_pod_ready
 
 	expected_env_var=$(kubectl exec "${pod_name}" -- "${exec_command[@]}")
