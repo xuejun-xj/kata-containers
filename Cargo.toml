@@ -199,3 +199,13 @@ tracing-subscriber = "0.3.20"
 ttrpc = "0.8.4"
 url = "2.5.4"
 which = "4.3.0"
+
+# Per-package release profile overrides for kata-deploy. The kata-deploy
+# binary runs once at pod start and then idles waiting for SIGTERM, so we
+# size-optimise it (opt-level = "z") and keep codegen-units = 1 to give
+# the optimiser the whole picture. These overrides only affect the
+# kata-deploy crate; agent / runtime-rs / dragonball compile with their
+# usual defaults.
+[profile.release.package."kata-deploy"]
+opt-level = "z"
+codegen-units = 1
