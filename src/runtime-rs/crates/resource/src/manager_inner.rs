@@ -486,6 +486,7 @@ impl ResourceManagerInner {
                 self.device_manager.as_ref(),
                 &self.sid,
                 self.agent.clone(),
+                &self.toml_config.runtime.emptydir_mode,
             )
             .await
     }
@@ -746,7 +747,11 @@ impl ResourceManagerInner {
             swap.clean().await;
         }
 
-        // TODO cleanup other resources
+        self.volume_resource
+            .cleanup_ephemeral_disks()
+            .await
+            .context("failed to cleanup ephemeral disks")?;
+
         Ok(())
     }
 

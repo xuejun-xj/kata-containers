@@ -6,6 +6,7 @@
 
 mod block_volume;
 mod default_volume;
+pub(crate) mod encrypted_emptydir_volume;
 mod ephemeral_volume;
 pub mod hugepage;
 mod local_volume;
@@ -42,6 +43,7 @@ pub trait Volume: Send + Sync {
 #[derive(Default)]
 pub struct VolumeResourceInner {
     volumes: Vec<Arc<dyn Volume>>,
+    ephemeral_disks: Vec<encrypted_emptydir_volume::EphemeralDiskInfo>,
 }
 
 #[derive(Default)]
@@ -70,6 +72,7 @@ impl VolumeResource {
         d: &RwLock<DeviceManager>,
         sid: &str,
         agent: Arc<dyn Agent>,
+        emptydir_mode: &str,
     ) -> Result<Vec<Arc<dyn Volume>>> {
         let mut volumes: Vec<Arc<dyn Volume>> = vec![];
         let oci_mounts = &spec.mounts().clone().unwrap_or_default();
@@ -92,6 +95,15 @@ impl VolumeResource {
                     ephemeral_volume::EphemeralVolume::new(m)
                         .with_context(|| format!("new ephemeral volume {m:?}"))?,
                 )
+            } else if encrypted_emptydir_volume::is_encrypted_emptydir_volume(m, emptydir_mode) {
+                let vol = encrypted_emptydir_volume::EncryptedEmptyDirVolume::new(d, m, sid)
+                    .await
+                    .with_context(|| format!("new encrypted emptydir volume {m:?}"))?;
+                let vol_arc: Arc<dyn Volume> = Arc::new(vol.clone());
+                let mut inner = self.inner.write().await;
+                inner.ephemeral_disks.push(vol.disk_info);
+                drop(inner);
+                vol_arc
             } else if is_block_volume(m) {
                 // handle block volume
                 Arc::new(
@@ -148,6 +160,27 @@ impl VolumeResource {
         }
 
         Ok(volumes)
+    }
+
+    pub async fn cleanup_ephemeral_disks(&self) -> Result<()> {
+        let inner = self.inner.read().await;
+        for disk in &inner.ephemeral_disks {
+            if let Err(e) = std::fs::remove_file(&disk.disk_path) {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    warn!(
+                        sl!(),
+                        "failed to remove ephemeral disk {:?}: {}", disk.disk_path, e
+                    );
+                }
+            }
+            if let Err(e) = kata_types::mount::remove_volume_path(&disk.source_path) {
+                warn!(
+                    sl!(),
+                    "failed to remove direct-volume path for {}: {}", disk.source_path, e
+                );
+            }
+        }
+        Ok(())
     }
 
     pub async fn dump(&self) {
