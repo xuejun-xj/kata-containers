@@ -81,13 +81,11 @@ fn containerd_config_schema_version(paths: &ContainerdPaths, runtime: &str) -> O
     schema_version_relaxed(&paths.config_file, runtime)
 }
 
-/// TOML path for containerd log level when DEBUG=true. Config schema v4+ uses
-/// `plugins."io.containerd.server.v1.debug"` instead of deprecated top-level `[debug]`.
-fn containerd_debug_level_toml_path(config_schema_version: Option<u32>) -> &'static str {
-    match config_schema_version {
-        Some(v) if v >= 4 => concat!(".plugins.", "\"io.containerd.server.v1.debug\"", ".level"),
-        _ => ".debug.level",
-    }
+/// TOML path for containerd log level when DEBUG=true.
+/// All released containerd config schema versions (including v4) use the
+/// top-level `[debug]` table with `level`, `format`, and `log_trace_id` keys.
+fn containerd_debug_level_toml_path(_config_schema_version: Option<u32>) -> &'static str {
+    ".debug.level"
 }
 
 /// Reads config and returns the CRI plugin ID used for *runtime* config (runtimes, snapshotter-per-runtime).
@@ -692,14 +690,7 @@ mod tests {
 
     #[test]
     fn test_containerd_debug_level_toml_path_by_schema_version() {
-        assert_eq!(
-            containerd_debug_level_toml_path(Some(4)),
-            ".plugins.\"io.containerd.server.v1.debug\".level"
-        );
-        assert_eq!(
-            containerd_debug_level_toml_path(Some(5)),
-            ".plugins.\"io.containerd.server.v1.debug\".level"
-        );
+        assert_eq!(containerd_debug_level_toml_path(Some(4)), ".debug.level");
         assert_eq!(containerd_debug_level_toml_path(Some(3)), ".debug.level");
         assert_eq!(containerd_debug_level_toml_path(None), ".debug.level");
     }
