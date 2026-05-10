@@ -185,7 +185,7 @@ setup() {
 @test "NIMService llama-3.2-1b-instruct serves /v1/models" {
     print_nimservice_namespace_resources "before apply"
     echo "NIMService test: Applying NIM YAML"
-    kubectl apply -f "${NIM_YAML}"
+    kubectl apply -n "${TEST_CLUSTER_NAMESPACE}" -f "${NIM_YAML}"
     echo "NIMService test: Waiting for deployment to exist (operator creates it from NIMService)"
     local wait_exist_timeout=30
     local elapsed=0
