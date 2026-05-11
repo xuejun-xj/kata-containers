@@ -888,6 +888,8 @@ func (s *Sandbox) createResourceController() error {
 			nullDeviceExist := false
 			urandomDeviceExist := false
 			ptmxDeviceExist := false
+			loopControlDeviceExist := false
+			loopBlockDeviceExist := false
 			for _, device := range resources.Devices {
 				if device.Type == "c" && device.Major == intptr(1) && device.Minor == intptr(3) {
 					nullDeviceExist = true
@@ -899,6 +901,14 @@ func (s *Sandbox) createResourceController() error {
 
 				if device.Type == "c" && device.Major == intptr(5) && device.Minor == intptr(2) {
 					ptmxDeviceExist = true
+				}
+
+				if device.Type == "c" && device.Major == intptr(10) && device.Minor == intptr(237) {
+					loopControlDeviceExist = true
+				}
+
+				if device.Type == "b" && device.Major == intptr(7) && device.Minor == nil {
+					loopBlockDeviceExist = true
 				}
 			}
 
@@ -925,6 +935,27 @@ func (s *Sandbox) createResourceController() error {
 					{Type: "c", Major: intptr(5), Minor: intptr(2), Access: rwm, Allow: true},
 				}...)
 
+			}
+
+			// When sandbox_cgroup_only is enabled the shim threads inherit
+			// the sandbox device cgroup, so any rootfs whose mount source is
+			// a regular file backed by a loop device (e.g. the blockfile
+			// snapshotter) needs /dev/loop-control and the /dev/loopN block
+			// nodes allowlisted, otherwise containerd's loop setup fails
+			// with EPERM on open("/dev/loop-control").
+			if s.config.SandboxCgroupOnly {
+				if !loopControlDeviceExist {
+					// "/dev/loop-control"
+					resources.Devices = append(resources.Devices, specs.LinuxDeviceCgroup{
+						Type: "c", Major: intptr(10), Minor: intptr(237), Access: rwm, Allow: true,
+					})
+				}
+				if !loopBlockDeviceExist {
+					// "/dev/loop*" (block major 7, any minor)
+					resources.Devices = append(resources.Devices, specs.LinuxDeviceCgroup{
+						Type: "b", Major: intptr(7), Access: rwm, Allow: true,
+					})
+				}
 			}
 
 			if spec.Linux.Resources.CPU != nil {
