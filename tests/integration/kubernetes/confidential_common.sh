@@ -145,8 +145,6 @@ function create_coco_pod_yaml() {
 		"${kernel_params_annotation}" \
 		"${kernel_params_value}"
 
-	add_allow_all_policy_to_yaml "${kata_pod}"
-
 	if [[ -n "${node}" ]]; then
 		set_node "${kata_pod}" "${node}"
 	fi
