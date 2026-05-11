@@ -184,11 +184,56 @@ pub struct Container {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Affinity {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub nodeAffinity: Option<NodeAffinity>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub podAntiAffinity: Option<PodAntiAffinity>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub podAffinity: Option<PodAffinity>,
-    // TODO: additional fields.
+}
+
+/// See Reference / Kubernetes API / Workload Resources / Pod.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct NodeAffinity {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    requiredDuringSchedulingIgnoredDuringExecution: Option<NodeSelector>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    preferredDuringSchedulingIgnoredDuringExecution: Option<Vec<PreferredSchedulingTerm>>,
+}
+
+/// See Reference / Kubernetes API / Workload Resources / Pod.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct PreferredSchedulingTerm {
+    weight: i32,
+    preference: NodeSelectorTerm,
+}
+
+/// See Reference / Kubernetes API / Workload Resources / Pod.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct NodeSelector {
+    nodeSelectorTerms: Vec<NodeSelectorTerm>,
+}
+
+/// See Reference / Kubernetes API / Workload Resources / Pod.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct NodeSelectorTerm {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    matchExpressions: Option<Vec<NodeSelectorRequirement>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    matchFields: Option<Vec<NodeSelectorRequirement>>,
+}
+
+/// See Reference / Kubernetes API / Workload Resources / Pod.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct NodeSelectorRequirement {
+    key: String,
+    operator: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    values: Option<Vec<String>>,
 }
 
 /// See Reference / Kubernetes API / Workload Resources / Pod.
