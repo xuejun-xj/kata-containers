@@ -349,4 +349,9 @@ mod tests {
     async fn test_create_container_ignored_fields() {
         runtests("createcontainer/ignored_fields").await;
     }
+
+    #[tokio::test]
+    async fn test_create_container_env_vars() {
+        runtests("createcontainer/env_vars").await;
+    }
 }
