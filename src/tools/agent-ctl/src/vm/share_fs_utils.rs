@@ -104,8 +104,6 @@ fn virtiofsd_args(cfg: SharedFsInfo, shared_dir: &str, sock_path: &str) -> Resul
         String::from(shared_dir),
         String::from("--cache"),
         cfg.virtio_fs_cache.clone(),
-        String::from("--sandbox"),
-        String::from("none"),
     ];
 
     if !cfg.virtio_fs_extra_args.is_empty() {
