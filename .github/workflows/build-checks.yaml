@@ -22,7 +22,6 @@ jobs:
     runs-on: >-
       ${{
         ( contains(inputs.instance, 's390x') && matrix.component.name == 'runtime' ) && 's390x' ||
-        ( contains(inputs.instance, 'ppc64le') && (matrix.component.name == 'runtime' || matrix.component.name == 'agent') ) && 'ppc64le' ||
         inputs.instance
       }}
     strategy:
