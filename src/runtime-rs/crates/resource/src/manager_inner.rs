@@ -478,17 +478,14 @@ impl ResourceManagerInner {
         cid: &str,
         spec: &oci::Spec,
     ) -> Result<Vec<Arc<dyn Volume>>> {
-        self.volume_resource
-            .handler_volumes(
-                &self.share_fs,
-                cid,
-                spec,
-                self.device_manager.as_ref(),
-                &self.sid,
-                self.agent.clone(),
-                &self.toml_config.runtime.emptydir_mode,
-            )
-            .await
+        let ctx = crate::volume::VolumeContext {
+            share_fs: &self.share_fs,
+            d: self.device_manager.as_ref(),
+            sid: &self.sid,
+            agent: self.agent.clone(),
+            emptydir_mode: &self.toml_config.runtime.emptydir_mode,
+        };
+        self.volume_resource.handler_volumes(&ctx, cid, spec).await
     }
 
     pub async fn handler_devices(&self, _cid: &str, linux: &Linux) -> Result<Vec<ContainerDevice>> {

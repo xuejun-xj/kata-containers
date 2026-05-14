@@ -32,6 +32,14 @@ use tokio::sync::RwLock;
 
 const BIND: &str = "bind";
 
+pub struct VolumeContext<'a> {
+    pub share_fs: &'a Option<Arc<dyn ShareFs>>,
+    pub d: &'a RwLock<DeviceManager>,
+    pub sid: &'a str,
+    pub agent: Arc<dyn Agent>,
+    pub emptydir_mode: &'a str,
+}
+
 #[async_trait]
 pub trait Volume: Send + Sync {
     fn get_volume_mount(&self) -> Result<Vec<oci::Mount>>;
@@ -66,14 +74,14 @@ impl VolumeResource {
 
     pub async fn handler_volumes(
         &self,
-        share_fs: &Option<Arc<dyn ShareFs>>,
+        ctx: &VolumeContext<'_>,
         cid: &str,
         spec: &oci::Spec,
-        d: &RwLock<DeviceManager>,
-        sid: &str,
-        agent: Arc<dyn Agent>,
-        emptydir_mode: &str,
     ) -> Result<Vec<Arc<dyn Volume>>> {
+        let share_fs = ctx.share_fs;
+        let d = ctx.d;
+        let sid = ctx.sid;
+        let emptydir_mode = ctx.emptydir_mode;
         let mut volumes: Vec<Arc<dyn Volume>> = vec![];
         let oci_mounts = &spec.mounts().clone().unwrap_or_default();
         info!(sl!(), " oci mount is : {:?}", oci_mounts.clone());
@@ -138,7 +146,7 @@ impl VolumeResource {
                         m,
                         cid,
                         read_only,
-                        agent.clone(),
+                        ctx.agent.clone(),
                         self.volume_manager.clone(),
                     )
                     .await
