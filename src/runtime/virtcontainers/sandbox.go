@@ -884,21 +884,38 @@ func (s *Sandbox) createResourceController() error {
 			resources.Devices = spec.Linux.Resources.Devices
 
 			intptr := func(i int64) *int64 { return &i }
-			// Determine if device /dev/null and /dev/urandom exist, and add if they don't
+			// Compare existing entries by value (nil-safe). Comparing the
+			// *int64 fields directly against intptr(...) only compares
+			// addresses, which never matches because intptr() returns a fresh
+			// pointer on every call.
 			nullDeviceExist := false
 			urandomDeviceExist := false
 			ptmxDeviceExist := false
-			for _, device := range resources.Devices {
-				if device.Type == "c" && device.Major == intptr(1) && device.Minor == intptr(3) {
-					nullDeviceExist = true
+			loopControlDeviceExist := false
+			loopBlockDeviceExist := false
+			for _, d := range resources.Devices {
+				if d.Major == nil {
+					continue
 				}
-
-				if device.Type == "c" && device.Major == intptr(1) && device.Minor == intptr(9) {
-					urandomDeviceExist = true
-				}
-
-				if device.Type == "c" && device.Major == intptr(5) && device.Minor == intptr(2) {
-					ptmxDeviceExist = true
+				switch d.Type {
+				case "c":
+					if d.Minor == nil {
+						continue
+					}
+					switch {
+					case *d.Major == 1 && *d.Minor == 3:
+						nullDeviceExist = true
+					case *d.Major == 1 && *d.Minor == 9:
+						urandomDeviceExist = true
+					case *d.Major == 5 && *d.Minor == 2:
+						ptmxDeviceExist = true
+					case *d.Major == 10 && *d.Minor == 237:
+						loopControlDeviceExist = true
+					}
+				case "b":
+					if *d.Major == 7 && d.Minor == nil {
+						loopBlockDeviceExist = true
+					}
 				}
 			}
 
@@ -925,6 +942,27 @@ func (s *Sandbox) createResourceController() error {
 					{Type: "c", Major: intptr(5), Minor: intptr(2), Access: rwm, Allow: true},
 				}...)
 
+			}
+
+			// When sandbox_cgroup_only is enabled the shim threads inherit
+			// the sandbox device cgroup, so any rootfs whose mount source is
+			// a regular file backed by a loop device (e.g. the blockfile
+			// snapshotter) needs /dev/loop-control and the /dev/loopN block
+			// nodes allowlisted, otherwise containerd's loop setup fails
+			// with EPERM on open("/dev/loop-control").
+			if s.config.SandboxCgroupOnly {
+				if !loopControlDeviceExist {
+					// "/dev/loop-control"
+					resources.Devices = append(resources.Devices, specs.LinuxDeviceCgroup{
+						Type: "c", Major: intptr(10), Minor: intptr(237), Access: rwm, Allow: true,
+					})
+				}
+				if !loopBlockDeviceExist {
+					// "/dev/loop*" (block major 7, any minor)
+					resources.Devices = append(resources.Devices, specs.LinuxDeviceCgroup{
+						Type: "b", Major: intptr(7), Access: rwm, Allow: true,
+					})
+				}
 			}
 
 			if spec.Linux.Resources.CPU != nil {
