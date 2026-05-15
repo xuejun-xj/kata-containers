@@ -383,6 +383,8 @@ async fn start_sandbox(
     if let Err(e) = initialize_policy().await {
         error!(logger, "Failed to initialize agent policy: {:?}", e);
         // Continuing execution without a security policy could be dangerous.
+        // Give a brief moment for the logs to flush, then abort the process to stop the VM.
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         std::process::abort();
     }
 
