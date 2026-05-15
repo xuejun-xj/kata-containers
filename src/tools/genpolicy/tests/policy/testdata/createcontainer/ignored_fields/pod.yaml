@@ -10,6 +10,25 @@ spec:
   priority: 1
   schedulerName: test-scheduler-name
   affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - test-node
+          matchFields:
+          - key: metadata.name
+            operator: NotIn
+            values:
+            - other-node
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        preference:
+          matchExpressions:
+          - key: accelerator
+            operator: Exists
     podAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
       - labelSelector:

@@ -27,6 +27,7 @@ setup() {
     COSIGN_SIGNED_PROTECTED_REGISTRY_IMAGE="ghcr.io/confidential-containers/test-container-image-rs:cosign-signed"
     COSIGNED_SIGNED_PROTECTED_REGISTRY_WRONG_KEY_IMAGE="ghcr.io/confidential-containers/test-container-image-rs:cosign-signed-key2"
     SECURITY_POLICY_KBS_URI="kbs:///default/security-policy/test"
+    policy_settings_dir="$(create_tmp_policy_settings_dir "${pod_config_dir}")"
 }
 
 function setup_kbs_image_policy() {
@@ -88,6 +89,7 @@ EOF
     setup_kbs_image_policy "reject"
 
     create_coco_pod_yaml "${UNSIGNED_UNPROTECTED_REGISTRY_IMAGE}" "${SECURITY_POLICY_KBS_URI}" "" "" "resource" "$node"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -101,6 +103,7 @@ EOF
     setup_kbs_image_policy
 
     create_coco_pod_yaml "${UNSIGNED_PROTECTED_REGISTRY_IMAGE}" "${SECURITY_POLICY_KBS_URI}" "" "" "resource" "$node"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -114,6 +117,7 @@ EOF
     setup_kbs_image_policy "reject"
 
     create_coco_pod_yaml "${COSIGN_SIGNED_PROTECTED_REGISTRY_IMAGE}" "${SECURITY_POLICY_KBS_URI}" "" "" "resource" "$node"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -127,6 +131,7 @@ EOF
     setup_kbs_image_policy
 
     create_coco_pod_yaml "${COSIGNED_SIGNED_PROTECTED_REGISTRY_WRONG_KEY_IMAGE}" "${SECURITY_POLICY_KBS_URI}" "" "" "resource" "$node"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -140,6 +145,7 @@ EOF
     setup_kbs_image_policy "reject"
 
     create_coco_pod_yaml "${UNSIGNED_PROTECTED_REGISTRY_IMAGE}" "" "" "" "resource" "$node"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -157,6 +163,7 @@ EOF
 
     initdata=$(get_initdata_with_security_policy)
     create_coco_pod_yaml_with_annotations "${UNSIGNED_UNPROTECTED_REGISTRY_IMAGE}" "" "${initdata}" "${node}"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -174,6 +181,7 @@ EOF
 
     initdata=$(get_initdata_with_security_policy)
     create_coco_pod_yaml_with_annotations "${UNSIGNED_PROTECTED_REGISTRY_IMAGE}" "" "${initdata}" "${node}"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -191,6 +199,7 @@ EOF
 
     initdata=$(get_initdata_with_security_policy)
     create_coco_pod_yaml_with_annotations "${COSIGN_SIGNED_PROTECTED_REGISTRY_IMAGE}" "" "${initdata}" "${node}"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -208,6 +217,7 @@ EOF
 
     initdata=$(get_initdata_with_security_policy)
     create_coco_pod_yaml_with_annotations "${COSIGNED_SIGNED_PROTECTED_REGISTRY_WRONG_KEY_IMAGE}" "" "${initdata}" "${node}"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -224,6 +234,7 @@ EOF
     setup_kbs_image_policy "reject"
 
     create_coco_pod_yaml_with_annotations "${UNSIGNED_PROTECTED_REGISTRY_IMAGE}" "" "" "${node}"
+    auto_generate_policy "${policy_settings_dir}" "${kata_pod}"
 
     # For debug sake
     echo "Pod ${kata_pod}: $(cat ${kata_pod})"
@@ -241,5 +252,6 @@ teardown() {
         skip "Either SNAPSHOTTER=nydus or EXPERIMENTAL_FORCE_GUEST_PULL must be set for this test"
     fi
 
+    delete_tmp_policy_settings_dir "${policy_settings_dir:-}"
     teardown_common "${node}" "${node_start_time:-}"
 }

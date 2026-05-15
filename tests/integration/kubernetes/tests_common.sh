@@ -218,6 +218,8 @@ auto_generate_policy() {
 	declare -r config_map_yaml_file="${3:-""}"
 	declare additional_flags="${4:-""}"
 
+	seed_initdata_from_yaml "${settings_dir}" "${yaml_file}"
+
 	additional_flags="${additional_flags} --initdata-path=${settings_dir}/default-initdata.toml"
 
 	auto_generate_policy_no_added_flags "${settings_dir}" "${yaml_file}" "${config_map_yaml_file}" "${additional_flags}"
@@ -425,6 +427,45 @@ add_allow_all_policy_to_yaml() {
 		;;
 
 	esac
+}
+
+get_cc_init_data_annotation_from_yaml() {
+	local yaml_file="$1"
+	local resource_kind
+	resource_kind=$(yq eval 'select(documentIndex == 0) | .kind' "${yaml_file}")
+
+	case "${resource_kind}" in
+	Pod)
+		yq eval \
+			'select(documentIndex == 0) | .metadata.annotations."io.katacontainers.config.hypervisor.cc_init_data" // ""' \
+			"${yaml_file}"
+		;;
+
+	Deployment|Job|ReplicationController)
+		yq eval \
+			'select(documentIndex == 0) | .spec.template.metadata.annotations."io.katacontainers.config.hypervisor.cc_init_data" // ""' \
+			"${yaml_file}"
+		;;
+
+	*)
+		echo ""
+		;;
+	esac
+}
+
+seed_initdata_from_yaml() {
+	local settings_dir="$1"
+	local yaml_file="$2"
+	local existing_initdata
+
+	auto_generate_policy_enabled || return 0
+
+	existing_initdata="$(get_cc_init_data_annotation_from_yaml "${yaml_file}")"
+	[[ -z "${existing_initdata}" ]] && return 0
+
+	if ! printf "%s" "${existing_initdata}" | base64 -d | gzip -d > "${settings_dir}/default-initdata.toml"; then
+		die "Failed to decode existing cc_init_data annotation from ${yaml_file}"
+	fi
 }
 
 # Execute "kubectl describe pods -l app=${app_label}, until its output contains "${endpoint} is blocked by policy"

@@ -82,6 +82,43 @@ function bats_unbuffered_info() {
 	echo -e "[$(basename "$0"):${BASH_LINENO[0]}] UNBUFFERED: INFO: ${msg}" >&3
 }
 
+# Create Docker config for genpolicy so it can authenticate when pulling image
+# manifests. Genpolicy uses docker_credential::get_credential(), which reads
+# DOCKER_CONFIG/config.json.
+#
+# Parameters:
+#	$1	- explicit registry host such as nvcr.io, or an image reference
+#		  with an explicit registry host such as nvcr.io/nim/meta/llama:latest
+#	$2	- registry username
+#	$3	- registry password (empty password leaves auth unchanged)
+#	$4	- Docker config directory (default: ${kubernetes_dir}/.docker-genpolicy)
+function setup_genpolicy_registry_auth() {
+	local registry_or_image="${1:-}"
+	local username="${2:-}"
+	local password="${3:-}"
+	local auth_dir="${4:-${kubernetes_dir:-${PWD}}/.docker-genpolicy}"
+
+	[[ -n "${password}" ]] || return 0
+	[[ -n "${registry_or_image}" ]] || die "Registry host or image reference not provided"
+	[[ -n "${username}" ]] || die "Registry username not provided"
+
+	local registry="${registry_or_image#http://}"
+	registry="${registry#https://}"
+	registry="${registry%%/*}"
+	[[ -n "${registry}" ]] || die "Could not determine registry from ${registry_or_image}"
+
+	mkdir -p "${auth_dir}"
+
+	local auth
+	auth=$(printf "%s" "${username}:${password}" | base64 -w0)
+
+	printf '{"auths":{"%s":{"auth":"%s"}}}\n' "${registry}" "${auth}" > "${auth_dir}/config.json"
+	chmod 600 "${auth_dir}/config.json"
+
+	export DOCKER_CONFIG="${auth_dir}"
+	export REGISTRY_AUTH_FILE="${auth_dir}/config.json"
+}
+
 function handle_error() {
 	local exit_code="${?}"
 	local line_number="${1:-}"
